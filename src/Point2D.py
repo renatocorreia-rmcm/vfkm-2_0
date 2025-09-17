@@ -6,8 +6,8 @@ Vector = np.ndarray
 
 class Point2D:
 	"""
-	2D space coordinate + float timestamp
-
+	2D space coordinate + float timestamp,
+	although it takes a space vector as a nd array
 	"""
 
 	def __init__(self, point2D: Optional[tuple[Vector, float]] = None):  # could use space and time parameters separately instead of in a 2-uple

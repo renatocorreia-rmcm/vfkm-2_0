@@ -83,26 +83,3 @@ class PolygonalPath:
 
 		path_str = " -> ".join([f"{format_vec(p.space())}@t={p.time():.1f}" for p in self.points])
 		return f"PolygonalPath object:\n[{path_str}]"
-
-
-# --- Example Usage ---
-if __name__ == '__main__':
-
-	# synthetic trajectory points
-	trajectory_points = [  # todo: converto to list[point2D]
-		Point2D((np.array([0.0, 0.0]), 0.0)),
-		Point2D((np.array([1.0, 2.0]), 1.0)),
-		Point2D((np.array([3.0, 3.0]), 2.5)),
-		Point2D((np.array([5.0, 1.0]), 3.0))
-	]
-
-	# Create a PolygonalPath instance
-	my_path = PolygonalPath(points=trajectory_points)
-
-	# Print the path and its calculated tangents
-	print("\n PATH \n")
-	print(my_path)
-
-	print("\n TANGENTS  \n")
-	for i, tangent in enumerate(my_path.tangents):
-		print(f"Segment {i + 1}: {tangent}")
