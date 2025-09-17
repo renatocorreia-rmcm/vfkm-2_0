@@ -52,11 +52,11 @@ class PolygonalPath:
 			calculated_tangents.append(zero_vector)  # theres no velocity w/out displacement
 
 		else:
-			for i in range(1, len(self.points)):
+			for j in range(1, len(self.points)):
 
 				# raw coordinates and time of points
-				p1_vec, p1_time = self.points[i - 1]
-				p2_vec, p2_time = self.points[i]
+				p1_vec, p1_time = self.points[j - 1].point2D
+				p2_vec, p2_time = self.points[j].point2D
 
 				# delta of coordinates and time of points
 				delta_space = p2_vec - p1_vec
@@ -90,10 +90,10 @@ if __name__ == '__main__':
 
 	# synthetic trajectory points
 	trajectory_points = [  # todo: converto to list[point2D]
-		(np.array([0.0, 0.0]), 0.0),
-		(np.array([1.0, 2.0]), 1.0),
-		(np.array([3.0, 3.0]), 2.5),
-		(np.array([5.0, 1.0]), 3.0)
+		Point2D((np.array([0.0, 0.0]), 0.0)),
+		Point2D((np.array([1.0, 2.0]), 1.0)),
+		Point2D((np.array([3.0, 3.0]), 2.5)),
+		Point2D((np.array([5.0, 1.0]), 3.0))
 	]
 
 	# Create a PolygonalPath instance

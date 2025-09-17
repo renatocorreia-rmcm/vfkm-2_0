@@ -10,7 +10,7 @@ class Point2D:
 
 	"""
 
-	def __init__(self, point2D: Optional[tuple[Vector, float]] = None):
+	def __init__(self, point2D: Optional[tuple[Vector, float]] = None):  # could use space and time parameters separately instead of in a 2-uple
 		self.point2D = point2D
 
 	point2D: tuple[Vector, float]  # space cooordinates, time
