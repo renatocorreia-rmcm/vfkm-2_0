@@ -2,7 +2,7 @@
 
 ##  basis classes
 
-* ### Grid
+* ### Grid                           **- TODO**
   * Triangle_Grid{2,N}D
   * Quad_Grid{2,N}D
 
@@ -17,11 +17,11 @@
   * #### Vector_Field
   * #### Index_List
 
-* ### Run
+* ### Run                              **- TODO**
   Takes:
   * List de Polygonal_Path
   * Dict com parâmetros: k,alpha,...
   * List de Clusters
 
-* ### VFKM
+* ### VFKM                            **-TODO**
    the "optimizer" in 1.0
