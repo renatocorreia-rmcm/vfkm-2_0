@@ -1,5 +1,7 @@
 import numpy as np
-from typing import List, Tuple, Optional
+from typing import Optional
+
+from Point2D import Point2D
 
 Vector = np.ndarray  # replace all Vector2D and Vector classes in original implementation
 
@@ -12,8 +14,8 @@ class PolygonalPath:
 
 	def __init__(
 			self,
-			points: List[Tuple[Vector, float]],
-			tangents: Optional[List[Vector]] = None
+			points: list[Point2D],
+			tangents: Optional[list[Vector]] = None
 	):
 		"""
 		Initializes a PolygonalPath.
@@ -27,18 +29,18 @@ class PolygonalPath:
 		"""
 
 		# POINTS
-		self.points: List[Tuple[Vector, float]] = points
+		self.points: list[Point2D] = points
 
 		# TANGENTS
 		if tangents:
-			self.tangents: List[Vector] = tangents
+			self.tangents: list[Vector] = tangents
 		else:
 			self.tangents = self._calculate_tangents()
 
-	def _calculate_tangents(self) -> List[Vector]:
+	def _calculate_tangents(self) -> list[Vector]:
 		"""
 		Calculates the tangent vector for each segment of the path.
-		(The velocity velocity vector, encodes speed and direction)
+		(The velocity vector, encodes speed and direction)
 
 		"""
 
@@ -79,7 +81,7 @@ class PolygonalPath:
 			""" Algebric notation w/ 2 decimal plate precision """
 			return f"({v[0]:.2f}, {v[1]:.2f})"
 
-		path_str = " -> ".join([f"{format_vec(p[0])}@t={p[1]:.1f}" for p in self.points])
+		path_str = " -> ".join([f"{format_vec(p.space())}@t={p.time():.1f}" for p in self.points])
 		return f"PolygonalPath object:\n[{path_str}]"
 
 
@@ -87,7 +89,7 @@ class PolygonalPath:
 if __name__ == '__main__':
 
 	# synthetic trajectory points
-	trajectory_points = [
+	trajectory_points = [  # todo: converto to list[point2D]
 		(np.array([0.0, 0.0]), 0.0),
 		(np.array([1.0, 2.0]), 1.0),
 		(np.array([3.0, 3.0]), 2.5),
