@@ -6,7 +6,7 @@ from Point2D import Point2D
 Vector = np.ndarray  # replace all Vector2D and Vector classes in original implementation
 
 
-class PolygonalPath:
+class PolygonalPath2D:
 	"""
 	Represents a trajectory as a sequence of time-stamped 2D points
 

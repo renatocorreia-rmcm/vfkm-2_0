@@ -4,7 +4,7 @@ Until this point, just testing the classes
 import numpy as np
 
 from Point2D import Point2D
-from PolygonalPath import PolygonalPath
+from PolygonalPath2D import PolygonalPath2D
 
 
 # synthetic trajectory points
@@ -16,7 +16,7 @@ trajectory_points = [
 ]
 
 # Create a PolygonalPath instance
-my_path = PolygonalPath(points=trajectory_points)
+my_path = PolygonalPath2D(points=trajectory_points)
 
 # Print the path and its calculated tangents
 print("\n PATH \n")
