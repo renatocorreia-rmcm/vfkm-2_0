@@ -19,7 +19,7 @@ class PointLocation:
     """
 
     face: TriangularFace
-    barycentricCords: tuple[float, float, float]
+    barycentricCords: tuple[float, float, float]  # counter clock wise order
 
 
 class Segment:
@@ -138,4 +138,141 @@ class Intersection:
 
 
 class Grid:
-    # todo: implement
+
+    #  number of vertices along the axis
+    resolutionX: int
+    resolutionY: int
+    #  bottom left of grid
+    x: float
+    y: float
+    #  width and height of grid
+    w: float
+    h: float
+    #  distance between adjacent grid vertices
+    delta_x: float
+    delta_y: float
+
+
+    def __init__(self, x: float, y:float, w: float, h: float, resolution_x: int, resolution_y: int):
+        
+        # m_* flags member variable (attribute)
+        self.resolutionX = resolution_x
+        self.resolutionY = resolution_y
+        self.x = x
+        self.y = y
+        self.w = w
+        self.h = h
+        
+        # escalas   (cord. grid) / (cord. mundo real)
+        self.delta_x = self.w / (self.resolutionX - 1)
+        self.delta_y = self.h / (self.resolutionY - 1)
+
+
+    def getVertexIndex(self, x: int, y: int) -> int:
+        """
+            get linear index based on (x, y) coordinate
+        """
+        return y * self.resolutionX + x
+
+
+    def getFaceWherePointLies(self, v: np.ndarray[float]) -> TriangularFace:
+        """
+            REQUIRES POINT IN GRID COORDINATE SYSTEM
+
+            create and return a new `face` object with the respective properties
+        """
+
+        if (  # coordinates out of range
+                (v[0] < 0 or v[0] > (self.resolutionX - 1.0))
+                or
+                (v[1] < 0 or v[1] > (self.resolutionY - 1.0))
+        ):
+            print("BAD POINT")
+            exit(1)
+
+        face: TriangularFace = TriangularFace()
+
+        # square cells indices
+        square_x: int = int(v[0])
+        square_y: int = int(v[1])
+        # floating cord inside square cell
+        fx: float = v[0] - square_x
+        fy: float = v[1] - square_y
+
+        if fx > fy:  # bottom triangle
+            face.indices = (  # counter clock wise order
+                self.getVertexIndex(square_x,   square_y),
+                self.getVertexIndex(square_x+1,   square_y),
+                self.getVertexIndex(square_x+1, square_y+1)
+            )
+
+        else: # top triangle
+            face.indices = (  # counter clock wise order
+                self.getVertexIndex(square_x,   square_y),
+                self.getVertexIndex(square_x+1, square_y+1),
+                self.getVertexIndex(square_x,   square_y+1)
+            )
+
+        return face
+
+    # resolution getters
+    def getResolutionX(self) -> int:
+        return self.resolutionX
+    def getResolutionY(self) -> int:
+        return self.resolutionY
+
+    # coordinate converters
+    def toGrid(self, world_point: np.ndarray) -> np.ndarray:
+        """
+        convert geographic ("world") coordinates into grid coordinates
+
+        """
+        return np.array([
+            (world_point[0] - self.x) / self.w * (self.resolutionX - 1.0),
+            (world_point[1] - self.y) / self.h * (self.resolutionY - 1.0)
+        ])
+    def toWorld(self, grid_point: np.ndarray):
+        """
+        convert grid coordinates into geographic ("world") coordinates
+
+        """
+        return np.array([
+            grid_point[0] / (self.resolutionX - 1.0) * self.w + self.x,
+            grid_point[1] / (self.resolutionY - 1.0) * self.h + self.y
+        ])
+
+    def getGridVertex(self, index: int):
+        """
+        take linear index, return correspondent (x, y) coordinates
+        """
+        return np.array(
+            index % self.resolutionX,
+            index / self.resolutionX
+        )
+
+    # If face is fixed, set only barycentric coordinates within face.
+
+    """
+    void Grid::locate_point(PointLocation &l, const Vector2D& point) const
+    {
+        Vector2D vertex1 = getGridVertex(l.face.indexV1);
+        Vector2D vertex2 = getGridVertex(l.face.indexV2);
+        Vector2D vertex3 = getGridVertex(l.face.indexV3);
+    
+        float det =
+            (vertex2.X() - vertex1.X()) * (vertex3.Y() - vertex1.Y()) - 
+            (vertex2.Y() - vertex1.Y()) * (vertex3.X() - vertex1.X());
+    
+        if(det == 0){
+            cout << "det == 0!!!!" << endl;
+            exit(1);
+        }
+    
+        float beta  = ((vertex1.X() - vertex3.X()) * (point.Y() - vertex3.Y()) - (vertex1.Y() - vertex3.Y()) * (point.X() - vertex3.X()))/det;
+        float gamma = ((vertex2.X() - vertex1.X()) * (point.Y() - vertex1.Y()) - (vertex2.Y() - vertex1.Y()) * (point.X() - vertex1.X()))/det;
+        float alpha = 1.0 - gamma - beta;
+        l.barycentric_coords[0] = alpha;
+        l.barycentric_coords[1] = beta;
+        l.barycentric_coords[2] = gamma;
+    }
+    """
