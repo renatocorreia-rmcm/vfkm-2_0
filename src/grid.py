@@ -263,7 +263,21 @@ class Grid:
 			self.getGridVertex(point_loc.face.indices[2])
 		)
 
-		det: float = np.linalg.det()  # what matrix to use here? what det is that?
+		# det tells triangle area
+		det: float = np.linalg.det(
+			np.array([
+				[vertices[0][0], vertices[1][0]],
+				[vertices[0][1], vertices[1][1]]
+			])
+		)
+
+		if det == 0:
+			print("det == 0!!!")
+			exit(1)
+
+		# use cramers rule to calculate barycentric coordinates
+
+
 
 	"""
 	void Grid::locate_point(PointLocation &l, const Vector2D& point) const
