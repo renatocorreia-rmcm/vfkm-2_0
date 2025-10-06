@@ -248,15 +248,13 @@ class Grid:
 			index / self.resolutionX
 		])
 
-	def locate_point(self, point_loc: PointLocation, point):
+	def locate_point(self, point_loc: PointLocation, point: np.ndarray) -> None:
 		"""
+		Calculates the barycentric coordinates of a point within a triangular face.
+
 		If face is fixed, set only barycentric coordinates within face.
-
-		:param point_loc:
-		:param point:
-		:return:
 		"""
-
+		# Retrieve the three vertices of the triangular face
 		vertices: tuple[np.ndarray, np.ndarray, np.ndarray] = (
 			self.getGridVertex(point_loc.face.indices[0]),
 			self.getGridVertex(point_loc.face.indices[1]),
@@ -275,31 +273,154 @@ class Grid:
 			print("det == 0!!!")
 			exit(1)
 
-		# use cramers rule to calculate barycentric coordinates
+		# each coordinate is a ratio of the area of a sub-triangle to the area of the main triangle.
+		beta = ((vertices[0][0] - vertices[2][0]) * (point[1] - vertices[2][1]) -
+				(vertices[0][1] - vertices[2][1]) * (point[0] - vertices[2][0])) / det
+
+		gamma = ((vertices[1][0] - vertices[0][0]) * (point[1] - vertices[0][1]) -
+				 (vertices[1][1] - vertices[0][1]) * (point[0] - vertices[0][0])) / det
+
+		alpha = 1.0 - gamma - beta
+
+		# store the results in the PointLocation object
+		point_loc.barycentricCords[0] = alpha
+		point_loc.barycentricCords[1] = beta
+		point_loc.barycentricCords[2] = gamma
 
 
 
-	"""
-	void Grid::locate_point(PointLocation &l, const Vector2D& point) const
-	{
-		Vector2D vertex1 = getGridVertex(l.face.indexV1);
-		Vector2D vertex2 = getGridVertex(l.face.indexV2);
-		Vector2D vertex3 = getGridVertex(l.face.indexV3);
-	
-		float det =
-			(vertex2.X() - vertex1.X()) * (vertex3.Y() - vertex1.Y()) - 
-			(vertex2.Y() - vertex1.Y()) * (vertex3.X() - vertex1.X());
-	
-		if(det == 0){
-			cout << "det == 0!!!!" << endl;
-			exit(1);
-		}
-	
-		float beta  = ((vertex1.X() - vertex3.X()) * (point.Y() - vertex3.Y()) - (vertex1.Y() - vertex3.Y()) * (point.X() - vertex3.X()))/det;
-		float gamma = ((vertex2.X() - vertex1.X()) * (point.Y() - vertex1.Y()) - (vertex2.Y() - vertex1.Y()) * (point.X() - vertex1.X()))/det;
-		float alpha = 1.0 - gamma - beta;
-		l.barycentric_coords[0] = alpha;
-		l.barycentric_coords[1] = beta;
-		l.barycentric_coords[2] = gamma;
-	}
+	"""  
+	# multiply both vectorfield by the laplacian
+	void Grid::multiplyByLaplacian(Vector &firstComponent, Vector &secondComponent) const
+{
+    if(m_resolutionX * m_resolutionY != firstComponent.getDimension() ||
+            m_resolutionX * m_resolutionY != secondComponent.getDimension()){
+        cout << "Error while multiplying grid by vector. Incompatible dimensions." << endl;
+        exit(1);
+    }
+
+    int numberOfVectors = m_resolutionX * m_resolutionY;
+    VECTOR_TYPE newFirstComponent[numberOfVectors];
+    VECTOR_TYPE newSecondComponent[numberOfVectors];
+
+    //float deltaX = m_w / (m_resolutionX - 1.0);
+    //float deltaY = m_h / (m_resolutionY - 1.0);
+
+    float horizontalCotangentWeight = m_delta_x / m_delta_y;
+    float verticalCotangentWeight = m_delta_y / m_delta_x;
+
+    //numberOfVectors == numberOfVertices in the grid == resolution * resolution
+    for(int i = 0 ; i < numberOfVectors ; ++i){
+        int row = i / m_resolutionX;
+        int col = i % m_resolutionX;
+
+        bool canMoveLeft = col > 0;
+        bool canMoveDown = row > 0;
+        bool canMoveRight = col < m_resolutionX - 1;
+        bool canMoveUp = row < m_resolutionY - 1;
+
+        float degree = 0;
+        float accum1 = 0;
+        float accum2 = 0;
+
+        if(canMoveLeft){
+            int neighIndex = i - 1;
+
+            //
+            float coef = 0.0f;
+
+            if(canMoveUp){
+                coef += verticalCotangentWeight;
+            }
+            if(canMoveDown){
+                coef += verticalCotangentWeight;
+            }
+
+            coef /= 2.0f;
+
+            //newVector.add((vectorField.at(neighIndex) * coef));
+            accum1 += coef * (firstComponent[neighIndex]);
+            accum2 += coef * (secondComponent[neighIndex]);
+
+            degree += coef;
+        }
+        if(canMoveRight){
+
+            int neighIndex = i + 1;
+
+            float coef = 0.0f;
+            //
+
+            if(canMoveDown){
+                coef += verticalCotangentWeight;
+            }
+            if(canMoveUp){
+                coef += verticalCotangentWeight;
+            }
+
+            coef /= 2.0f;
+
+            //newVector.add((vectorField.at(neighIndex) * coef));
+            accum1 += coef * (firstComponent[neighIndex]);
+            accum2 += coef * (secondComponent[neighIndex]);
+
+            degree += coef;
+        }
+        if(canMoveDown){
+
+            float coef = 0.0f;
+
+            int neighIndex = i - m_resolutionX;
+
+
+            if(canMoveLeft){
+                coef += horizontalCotangentWeight;
+            }
+            if(canMoveRight){
+                coef += horizontalCotangentWeight;
+            }
+
+            coef /= 2.0f;
+
+
+            //newVector.add((vectorField.at(neighIndex) * coef));
+
+            accum1 += coef * (firstComponent[neighIndex]);
+            accum2 += coef * (secondComponent[neighIndex]);
+
+            degree += coef;
+        }
+        if(canMoveUp){
+
+            int neighIndex = i +  m_resolutionX;
+
+            float coef = 0.0f;
+
+            if(canMoveLeft){
+                coef += horizontalCotangentWeight;
+            }
+            if(canMoveRight){
+                coef += horizontalCotangentWeight;
+            }
+
+            coef /= 2.0f;
+
+            //newVector.add((vectorField.at(neighIndex) * coef));
+
+            accum1 += coef * (firstComponent[neighIndex]);
+            accum2 += coef * (secondComponent[neighIndex]);
+
+            degree += coef;
+        }
+
+        //newVector.add(vectorField.at(i) * (-degree));
+        newFirstComponent[i] = accum1 - degree * firstComponent[i];
+        newSecondComponent[i] = accum2 - degree * secondComponent[i];
+    }
+
+    //vectorField.assign(newVectorField.begin(), newVectorField.end());
+    firstComponent.setValues(newFirstComponent);    
+    secondComponent.setValues(newSecondComponent);    
+}
+
 	"""
