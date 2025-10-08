@@ -1,6 +1,7 @@
 from typing import Optional
 import numpy as np
 
+from PolygonalPath2D import PolygonalPath2D  # for Grid.clip_line()
 
 class TriangularFace:
     """
@@ -293,9 +294,9 @@ class Grid:
         point_loc.barycentricCords[2] = gamma
 
 
-    def multiply_by_laplacian(self, first_component: np.ndarray[float], second_component: np.ndarray[float]):
+    def multiply_by_laplacian(self, first_component: np.ndarray[float], second_component: np.ndarray[float]) -> None:
         """
-        multiply both vectorfield components by the laplacian
+        multiply both vector field components by the laplacian
 
         """
 
@@ -320,6 +321,7 @@ class Grid:
             row = i // self.resolutionX
             col = i % self.resolutionX
 
+            # considering grid constraints
             can_move_left:  bool = col > 0
             can_move_down:  bool = row > 0
             can_move_right: bool = col < self.resolutionX - 1
@@ -329,7 +331,7 @@ class Grid:
             accum1 = 0.0
             accum2 = 0.0
 
-            # Move Left
+            # LEFT
             if can_move_left:
                 neigh_index = i - 1
                 coef = 0.0
@@ -345,7 +347,7 @@ class Grid:
                 accum2 += coef * second_component[neigh_index]
                 degree += coef
 
-            # Move Right
+            # RIGHT
             if can_move_right:
                 neigh_index = i + 1
                 coef = 0.0
@@ -361,7 +363,7 @@ class Grid:
                 accum2 += coef * second_component[neigh_index]
                 degree += coef
 
-            # Move Down
+            # DOWN
             if can_move_down:
                 neigh_index = i - self.resolutionX
                 coef = 0.0
@@ -377,7 +379,7 @@ class Grid:
                 accum2 += coef * second_component[neigh_index]
                 degree += coef
 
-            # Move Up
+            # UP
             if can_move_up:
                 neigh_index = i + self.resolutionX
                 coef = 0.0
@@ -393,10 +395,230 @@ class Grid:
                 accum2 += coef * second_component[neigh_index]
                 degree += coef
 
-            # Update new components
+            # update new components
             newFirstComponent[i] = accum1 - degree * first_component[i]
             newSecondComponent[i] = accum2 - degree * second_component[i]
 
-        # Update the field (if setValues is a method, like in a class)
-        first_component = newFirstComponent
-        second_component = newSecondComponent
+        # Update the field
+        first_component[:] = newFirstComponent
+        second_component[:] = newSecondComponent
+
+    def multiply_by_laplacian2(self, first_component: np.ndarray[float], row_length2: np.ndarray[float]) -> None:
+        """
+        multiply only one vector field component by the laplacian
+
+        """
+
+        if self.resolutionX * self.resolutionY != first_component.size:
+            print("Error while multiplying grid by vector. Incompatible dimensions.")
+            exit(1)
+
+        number_of_vectors = self.resolutionX * self.resolutionY
+
+        new_first_component = np.zeros(number_of_vectors)
+        row_length2[:] = np.zeros(number_of_vectors)
+
+        horizontal_cotangent_weight = self.delta_x / self.delta_y
+        vertical_cotangent_weight = self.delta_y / self.delta_x
+
+        for i in range(number_of_vectors):
+            row_length2[i] = 0.0
+
+            row = i // self.resolutionX
+            col = i % self.resolutionX
+
+            can_move_left = col > 0
+            can_move_down = row > 0
+            can_move_right = col < self.resolutionX - 1
+            can_move_up = row < self.resolutionY - 1
+
+            degree = 0.0
+            accum1 = 0.0
+
+            # LEFT
+            if can_move_left:
+                neigh_index = i - 1
+                coef = 0.0
+
+                if can_move_up:
+                    coef += vertical_cotangent_weight
+                if can_move_down:
+                    coef += vertical_cotangent_weight
+
+                coef /= 2.0
+
+                accum1 += coef * first_component[neigh_index]
+                row_length2[i] += coef * coef
+                degree += coef
+
+            # RIGHT
+            if can_move_right:
+                neigh_index = i + 1
+                coef = 0.0
+
+                if can_move_down:
+                    coef += vertical_cotangent_weight
+                if can_move_up:
+                    coef += vertical_cotangent_weight
+
+                coef /= 2.0
+
+                accum1 += coef * first_component[neigh_index]
+                row_length2[i] += coef * coef
+                degree += coef
+
+            # DOWN
+            if can_move_down:
+                neigh_index = i - self.resolutionX
+                coef = 0.0
+
+                if can_move_left:
+                    coef += horizontal_cotangent_weight
+                if can_move_right:
+                    coef += horizontal_cotangent_weight
+
+                coef /= 2.0
+
+                accum1 += coef * first_component[neigh_index]
+                row_length2[i] += coef * coef
+                degree += coef
+
+            # UP
+            if can_move_up:
+                neigh_index = i + self.resolutionX
+                coef = 0.0
+
+                if can_move_left:
+                    coef += horizontal_cotangent_weight
+                if can_move_right:
+                    coef += horizontal_cotangent_weight
+
+                coef /= 2.0
+
+                accum1 += coef * first_component[neigh_index]
+                row_length2[i] += coef * coef
+                degree += coef
+
+            # update component
+            new_first_component[i] = accum1 - degree * first_component[i]
+            row_length2[i] += degree * degree
+
+        # update original field in place
+        first_component[:] = new_first_component
+
+    def clip_line(self, path1: PolygonalPath2D):
+        """
+        tesselation - find all points where path intersects
+
+        insert new vertices wherever the path intersects with a grid line
+
+        divide path1 into his segments
+        then clipAgainstHorizontalLines and clipAgainstVerticalLines do the actual tesselation
+        """
+
+        pass
+
+    """
+        void Grid::clipLine(PolygonalPath &path1) const  // tesselation - find all points where path intersects
+    {
+        /*
+            insert new vertices wherever the path intersects with a grid line
+
+            divide path1 into his segments
+            then clipAgainstHorizontalLines and clipAgainstVerticalLines do the actual tesselation
+        */
+
+        // get segments
+        size_t currentVertexIndex = 0;
+        while(currentVertexIndex < path1.numberOfPoints() - 1){  // for each segment:
+            // position of start and end
+            Vector2D from = path1.getPoint(currentVertexIndex).first,
+                       to = path1.getPoint(currentVertexIndex+1).first;
+            // time of start and end
+            float   tfrom = path1.getPoint(currentVertexIndex).second,
+                      tto = path1.getPoint(currentVertexIndex+1).second;
+            // direction
+            Vector2D tangent = path1.getTangent(currentVertexIndex);
+
+            // convert cordinates World->Grid
+            vector<Grid::Inter> inters;
+            Grid::Inter e1, e2;
+            e1.grid_point = toGrid(from);
+            e2.grid_point = toGrid(to);
+            e1.u = 0;  // 0 = start
+            e2.u = 1;  // 1 = end
+            e1.kind = e2.kind = Grid::Inter::EndPoint;
+
+            inters.push_back(e1);
+
+            vector<Grid::Inter> horiz = clipAgainstHorizontalLines(e1, e2);
+            horiz.push_back(e2);
+            for (size_t i=0; i<horiz.size(); ++i) {  // for each horizontal intersection
+                vector<Grid::Inter> vert = clipAgainstVerticalLines(inters.back(), horiz[i]);
+                // reported barycentric coords are with respect to clipped lines;
+                // make a good u here.
+                for (size_t j=0; j<vert.size(); ++j) {
+                    vert[j].u = get_u_from_points(e1.grid_point, e2.grid_point, vert[j].grid_point);
+                }
+                copy(vert.begin(), vert.end(), back_inserter(inters));
+                inters.push_back(horiz[i]);
+            }
+
+            // resolve diagonal intersections which remain
+            for (size_t i=0; i<inters.size()-1; ++i) {
+                int x_square = min(int(inters[i  ].grid_point.x),
+                                   int(inters[i+1].grid_point.x)),
+                    y_square = min(int(inters[i  ].grid_point.y),
+                                   int(inters[i+1].grid_point.y));
+                float
+                    u1 = inters[i  ].grid_point.x - x_square,
+                    v1 = inters[i  ].grid_point.y - y_square,
+                    u2 = inters[i+1].grid_point.x - x_square,
+                    v2 = inters[i+1].grid_point.y - y_square;
+                float du = u2 - u1, dv = v2 - v1;
+                int s1 = sgn(u1 - v1);
+                int s2 = sgn(u2 - v2);
+
+                // if sign of x_i - y_i is different than that of
+                // x_i+1 - y_i+1 then there's an intersection with the diagonal.
+
+                if (s1 != s2) {
+                    // If that's the case, solve the following linear system over point-in-square
+                    // coordinates:
+
+                    // x = y (diagonal line)
+                    // (y-y2)/(y2-y1) = (x-x2)/(x2-x1)
+
+                    //   or equivalently without divisions:
+                    // (y-y2)dx = (x-x2)dy
+
+                    // The solution is x = y = (v2 du - u2 dv) / (du - dv)
+
+                    // if du = dv we wouldn't have arrived here, because their signs would
+                    // have been different
+                    float x = (v2 * du - u2 * dv) / (du - dv);
+                    float y = x;
+                    Grid::Inter new_inter;
+                    new_inter.grid_point = Vector2D(x_square + x, y_square + y);
+                    new_inter.u = get_u_from_points(e1.grid_point, e2.grid_point, new_inter.grid_point);
+                    new_inter.kind = Grid::Inter::Diagonal;
+                    inters.insert(inters.begin() + (i + 1), new_inter);
+
+                    // Since we just inserted a point, and we don't want
+                    // to check diagonal intersections against it, we increment the index variable.
+                    ++i;
+                }
+
+                // At the end of all this, we insert points 1..end-1, which correspond to
+                // new intersections. inters[0] is the origin vertex.
+            }
+            for (size_t i=1; i<inters.size()-1; ++i) {
+                path1.addPoint(++currentVertexIndex,
+                               make_pair(toWorld(inters[i].grid_point),
+                                         inters[i].u * tto + (1 - inters[i].u) * tfrom),
+                               tangent);
+            }
+            currentVertexIndex++;
+        }
+    }
+    """
