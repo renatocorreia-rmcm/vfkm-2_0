@@ -295,7 +295,7 @@ class Grid:
 
     def multiply_by_laplacian(self, first_component: np.ndarray[float], second_component: np.ndarray[float]):
         """
-        multiply both vectorfield by the laplacian
+        multiply both vectorfield components by the laplacian
 
         """
 
@@ -306,143 +306,97 @@ class Grid:
             print("Error while multiplying grid by vector. Incompatible dimensions.")
             exit(1)
 
-        numberOfVectors: int = self.resolutionX * self.resolutionY
-        newFirstComponent: np.ndarray[float]  # size: numberOfVectors
-        newSecondComponent: np.ndarray[float]  # size: numberOfVectors
+        number_of_vectors: int = self.resolutionX * self.resolutionY
+
+        newFirstComponent: np.ndarray[float]  = np.zeros(number_of_vectors)
+        newSecondComponent: np.ndarray[float] = np.zeros(number_of_vectors)
+
+        horizontal_cotangent_weight: float = self.delta_x / self.delta_y
+        vertical_cotangent_weight: float = self.delta_y / self.delta_x
 
 
+        for i in range(number_of_vectors):  # number_of_vectors == numberOfVertices in the grid == resolution * resolution
 
-    """  
-    void Grid::multiplyByLaplacian(Vector &firstComponent, Vector &secondComponent) const
-{
-    if(m_resolutionX * m_resolutionY != firstComponent.getDimension() ||
-            m_resolutionX * m_resolutionY != secondComponent.getDimension()){
-        cout << "Error while multiplying grid by vector. Incompatible dimensions." << endl;
-        exit(1);
-    }
+            row = i // self.resolutionX
+            col = i % self.resolutionX
 
-    int numberOfVectors = m_resolutionX * m_resolutionY;
-    VECTOR_TYPE newFirstComponent[numberOfVectors];
-    VECTOR_TYPE newSecondComponent[numberOfVectors];
+            can_move_left:  bool = col > 0
+            can_move_down:  bool = row > 0
+            can_move_right: bool = col < self.resolutionX - 1
+            can_move_up:    bool = row < self.resolutionY - 1
 
-    //float deltaX = m_w / (m_resolutionX - 1.0);
-    //float deltaY = m_h / (m_resolutionY - 1.0);
+            degree = 0.0
+            accum1 = 0.0
+            accum2 = 0.0
 
-    float horizontalCotangentWeight = m_delta_x / m_delta_y;
-    float verticalCotangentWeight = m_delta_y / m_delta_x;
+            # Move Left
+            if can_move_left:
+                neigh_index = i - 1
+                coef = 0.0
 
-    //numberOfVectors == numberOfVertices in the grid == resolution * resolution
-    for(int i = 0 ; i < numberOfVectors ; ++i){
-        int row = i / m_resolutionX;
-        int col = i % m_resolutionX;
+                if can_move_up:
+                    coef += vertical_cotangent_weight
+                if can_move_down:
+                    coef += vertical_cotangent_weight
 
-        bool canMoveLeft = col > 0;
-        bool canMoveDown = row > 0;
-        bool canMoveRight = col < m_resolutionX - 1;
-        bool canMoveUp = row < m_resolutionY - 1;
+                coef /= 2.0
 
-        float degree = 0;
-        float accum1 = 0;
-        float accum2 = 0;
+                accum1 += coef * first_component[neigh_index]
+                accum2 += coef * second_component[neigh_index]
+                degree += coef
 
-        if(canMoveLeft){
-            int neighIndex = i - 1;
+            # Move Right
+            if can_move_right:
+                neigh_index = i + 1
+                coef = 0.0
 
-            //
-            float coef = 0.0f;
+                if can_move_down:
+                    coef += vertical_cotangent_weight
+                if can_move_up:
+                    coef += vertical_cotangent_weight
 
-            if(canMoveUp){
-                coef += verticalCotangentWeight;
-            }
-            if(canMoveDown){
-                coef += verticalCotangentWeight;
-            }
+                coef /= 2.0
 
-            coef /= 2.0f;
+                accum1 += coef * first_component[neigh_index]
+                accum2 += coef * second_component[neigh_index]
+                degree += coef
 
-            //newVector.add((vectorField.at(neighIndex) * coef));
-            accum1 += coef * (firstComponent[neighIndex]);
-            accum2 += coef * (secondComponent[neighIndex]);
+            # Move Down
+            if can_move_down:
+                neigh_index = i - self.resolutionX
+                coef = 0.0
 
-            degree += coef;
-        }
-        if(canMoveRight){
+                if can_move_left:
+                    coef += horizontal_cotangent_weight
+                if can_move_right:
+                    coef += horizontal_cotangent_weight
 
-            int neighIndex = i + 1;
+                coef /= 2.0
 
-            float coef = 0.0f;
-            //
+                accum1 += coef * first_component[neigh_index]
+                accum2 += coef * second_component[neigh_index]
+                degree += coef
 
-            if(canMoveDown){
-                coef += verticalCotangentWeight;
-            }
-            if(canMoveUp){
-                coef += verticalCotangentWeight;
-            }
+            # Move Up
+            if can_move_up:
+                neigh_index = i + self.resolutionX
+                coef = 0.0
 
-            coef /= 2.0f;
+                if can_move_left:
+                    coef += horizontal_cotangent_weight
+                if can_move_right:
+                    coef += horizontal_cotangent_weight
 
-            //newVector.add((vectorField.at(neighIndex) * coef));
-            accum1 += coef * (firstComponent[neighIndex]);
-            accum2 += coef * (secondComponent[neighIndex]);
+                coef /= 2.0
 
-            degree += coef;
-        }
-        if(canMoveDown){
+                accum1 += coef * first_component[neigh_index]
+                accum2 += coef * second_component[neigh_index]
+                degree += coef
 
-            float coef = 0.0f;
+            # Update new components
+            newFirstComponent[i] = accum1 - degree * first_component[i]
+            newSecondComponent[i] = accum2 - degree * second_component[i]
 
-            int neighIndex = i - m_resolutionX;
-
-
-            if(canMoveLeft){
-                coef += horizontalCotangentWeight;
-            }
-            if(canMoveRight){
-                coef += horizontalCotangentWeight;
-            }
-
-            coef /= 2.0f;
-
-
-            //newVector.add((vectorField.at(neighIndex) * coef));
-
-            accum1 += coef * (firstComponent[neighIndex]);
-            accum2 += coef * (secondComponent[neighIndex]);
-
-            degree += coef;
-        }
-        if(canMoveUp){
-
-            int neighIndex = i +  m_resolutionX;
-
-            float coef = 0.0f;
-
-            if(canMoveLeft){
-                coef += horizontalCotangentWeight;
-            }
-            if(canMoveRight){
-                coef += horizontalCotangentWeight;
-            }
-
-            coef /= 2.0f;
-
-            //newVector.add((vectorField.at(neighIndex) * coef));
-
-            accum1 += coef * (firstComponent[neighIndex]);
-            accum2 += coef * (secondComponent[neighIndex]);
-
-            degree += coef;
-        }
-
-        //newVector.add(vectorField.at(i) * (-degree));
-        newFirstComponent[i] = accum1 - degree * firstComponent[i];
-        newSecondComponent[i] = accum2 - degree * secondComponent[i];
-    }
-
-    //vectorField.assign(newVectorField.begin(), newVectorField.end());
-    firstComponent.setValues(newFirstComponent);    
-    secondComponent.setValues(newSecondComponent);    
-}
-
-    """
+        # Update the field (if setValues is a method, like in a class)
+        first_component = newFirstComponent
+        second_component = newSecondComponent
