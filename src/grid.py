@@ -1,7 +1,10 @@
+from dataclasses import dataclass
 from typing import Optional
 import numpy as np
 
 from PolygonalPath2D import PolygonalPath2D  # for Grid.clip_line()
+from Point2D import Point2D
+
 
 class TriangularFace:
     """
@@ -139,15 +142,19 @@ class Intersection:
 
 
 class Grid:
+
     #  number of vertices along the axis
     resolutionX: int
     resolutionY: int
-    #  bottom left of grid
+
+    #  bottom left coordinate of grid
     x: float
     y: float
-    #  width and height of grid
+
+    #  total width and height of grid
     w: float
     h: float
+
     #  distance between adjacent grid vertices
     delta_x: float
     delta_y: float
@@ -220,10 +227,9 @@ class Grid:
         return self.resolutionY
 
     # coordinate converters
-    def to_grid(self, world_point: np.ndarray) -> np.ndarray:
+    def to_grid(self, world_point: np.ndarray) -> np.ndarray[float]:
         """
         convert geographic ("world") coordinates into grid coordinates
-
         """
         return np.array([
             (world_point[0] - self.x) / self.w * (self.resolutionX - 1.0),
@@ -506,9 +512,22 @@ class Grid:
         # update original field in place
         first_component[:] = new_first_component
 
+
+    class Inter:
+        """
+        Intersection point.
+
+        """
+
+        grid_point: np.ndarray[float]  # grid coordinate (world coordinate normalized to grid)
+        u: float  # barycentric coordinate along segment
+
+        kind: int  # "enum-like" constants inside the class
+        Vertical=1; Horizontal=2; Diagonal=3; EndPoint=4
+
     def clip_line(self, path1: PolygonalPath2D):
         """
-        tesselation - find all points where path intersects
+        This performs tessellation of 'path1' by finding all intersection points.
 
         insert new vertices wherever the path intersects with a grid line
 
@@ -516,7 +535,101 @@ class Grid:
         then clipAgainstHorizontalLines and clipAgainstVerticalLines do the actual tesselation
         """
 
-        pass
+        current_vertex_index = 0
+
+        while current_vertex_index < path1.number_of_points() - 1:  # "for each vertex (segment)"
+
+            # start point - position and time
+            from_pos, from_time = path1.get_point(current_vertex_index)
+
+            # end point - position and time
+            to_pos, to_time = path1.get_point(current_vertex_index + 1)
+
+            # tangent
+            tangent = path1.get_tangent(current_vertex_index)
+
+
+            inters: list[Grid.Inter] = []
+
+            # endpoints
+            e1 = self.Inter()
+            e2 = self.Inter()
+
+            # Convert coordinates World -> Grid
+            e1.grid_point = self.to_grid(from_pos)
+            e2.grid_point = self.to_grid(to_pos)
+
+            # set barycentric cords
+            e1.u = 0.0  # start
+            e2.u = 1.0  # end
+
+            # set kind
+            e1.kind = e2.kind = self.Inter.EndPoint
+
+            # append to intersections list
+            inters.append(e1)
+
+
+            """
+            # --- Horizontal intersections ---
+            
+            horiz = self.clipAgainstHorizontalLines(e1, e2)
+            horiz.append(e2)
+
+            for h in horiz:
+                # Vertical intersections between last intersection and h
+                vert = self.clipAgainstVerticalLines(inters[-1], h)
+
+                # Update u for each vertical intersection
+                for v in vert:
+                    v.u = self.get_u_from_points(e1.grid_point, e2.grid_point, v.grid_point)
+
+                inters.extend(vert)
+                inters.append(h)
+
+            # --- Resolve diagonal intersections ---
+            i = 0
+            while i < len(inters) - 1:
+                x_square = min(int(inters[i].grid_point.x), int(inters[i + 1].grid_point.x))
+                y_square = min(int(inters[i].grid_point.y), int(inters[i + 1].grid_point.y))
+
+                u1 = inters[i].grid_point.x - x_square
+                v1 = inters[i].grid_point.y - y_square
+                u2 = inters[i + 1].grid_point.x - x_square
+                v2 = inters[i + 1].grid_point.y - y_square
+
+                du = u2 - u1
+                dv = v2 - v1
+                s1 = sgn(u1 - v1)
+                s2 = sgn(u2 - v2)
+
+                # Check if signs differ → diagonal intersection
+                if s1 != s2:
+                    # Solve system:
+                    # x = y = (v2 * du - u2 * dv) / (du - dv)
+                    x = (v2 * du - u2 * dv) / (du - dv)
+                    y = x
+
+                    new_inter = self.Inter()
+                    new_inter.grid_point = Vector2D(x_square + x, y_square + y)
+                    new_inter.u = self.get_u_from_points(e1.grid_point, e2.grid_point, new_inter.grid_point)
+                    new_inter.kind = self.Inter.Diagonal
+
+                    inters.insert(i + 1, new_inter)
+                    i += 1  # skip newly inserted point
+                i += 1
+
+            # --- Insert intersection points into path ---
+            for i in range(1, len(inters) - 1):
+                world_point = self.toWorld(inters[i].grid_point)
+                time_value = inters[i].u * to_time + (1 - inters[i].u) * from_time
+                path1.addPoint(current_vertex_index + 1, (world_point, time_value), tangent)
+                current_vertex_index += 1
+
+            current_vertex_index += 1
+            """
+
+
 
     """
         void Grid::clipLine(PolygonalPath &path1) const  // tesselation - find all points where path intersects
@@ -532,19 +645,19 @@ class Grid:
         size_t currentVertexIndex = 0;
         while(currentVertexIndex < path1.numberOfPoints() - 1){  // for each segment:
             // position of start and end
-            Vector2D from = path1.getPoint(currentVertexIndex).first,
-                       to = path1.getPoint(currentVertexIndex+1).first;
+            Vector2D from = path1.get_point(currentVertexIndex).first,
+                       to = path1.get_point(currentVertexIndex+1).first;
             // time of start and end
-            float   tfrom = path1.getPoint(currentVertexIndex).second,
-                      tto = path1.getPoint(currentVertexIndex+1).second;
+            float   tfrom = path1.get_point(currentVertexIndex).second,
+                      tto = path1.get_point(currentVertexIndex+1).second;
             // direction
-            Vector2D tangent = path1.getTangent(currentVertexIndex);
+            Vector2D tangent = path1.get_tangent(currentVertexIndex);
 
             // convert cordinates World->Grid
             vector<Grid::Inter> inters;
             Grid::Inter e1, e2;
-            e1.grid_point = toGrid(from);
-            e2.grid_point = toGrid(to);
+            e1.grid_point = to_grid(from);
+            e2.grid_point = to_grid(to);
             e1.u = 0;  // 0 = start
             e2.u = 1;  // 1 = end
             e1.kind = e2.kind = Grid::Inter::EndPoint;
