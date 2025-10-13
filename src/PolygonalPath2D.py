@@ -12,28 +12,29 @@ class PolygonalPath2D:
 
     """
 
+    points: list[Point2D]
+    tangents: list[Vector]
+
     def __init__(
             self,
-            points: np.ndarray[Point2D],
+            points: list[Point2D],
             tangents: Optional[list[Vector]] = None
     ):
         """
-        Initializes a PolygonalPath.
 
         Args:
-            points: A list of tuples, where each tuple contains
-            a NumPy array (shape 2,) and a float timestamp.
+            points: A list of PointNDs
 
             tangents: An optional list of pre-calculated tangent vectors (NumPy arrays).
             If None, they will be calculated automatically.
         """
 
         # POINTS
-        self.points: np.ndarray[Point2D] = points
+        self.points = points
 
         # TANGENTS
         if tangents:
-            self.tangents: list[Vector] = tangents
+            self.tangents = tangents
         else:
             self.tangents = self._calculate_tangents()
 
@@ -79,6 +80,10 @@ class PolygonalPath2D:
                     calculated_tangents.append(zero_vector)
 
         return calculated_tangents
+
+    def add_point(self, index: int, new_point: Point2D, tangent: Vector):
+        self.points.insert(index, new_point)
+        self.tangents.insert(index, tangent)
 
     def __str__(self) -> str:
         """
