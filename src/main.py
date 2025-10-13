@@ -1,5 +1,6 @@
 """
 Until this point, just testing the classes
+# todo: test grid method - compare outputs with vfkm-1_0
 """
 import numpy as np
 

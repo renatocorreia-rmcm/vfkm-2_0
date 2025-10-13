@@ -1,210 +1,22 @@
-from __future__ import annotations
-from typing import Optional
-import numpy as np
+from __future__ import annotations  # allow to reference Grid type inside the Grid implementation
 
-from PolygonalPath2D import PolygonalPath2D  # for Grid.clip_line()
 from Point2D import Point2D
 
+import numpy as np
 
-# todo: modularizar; isolar grid dessas outras subclasses
-
-class TriangularFace:
-    """
-    3-uple of indices
-    """
-
-    indices: tuple[int, int, int]
-
-    def __init__(self, indices: Optional[tuple[int, int, int]] = None):
-        self.indices = indices
+from Grid_aux import TriangularFace, PointLocation, Segment, CurveDescription
+from PolygonalPath2D import PolygonalPath2D  # for Grid.clip_line()
 
 
-class PointLocation:
-    """
-    reference to the point's face object
-    3-uple of barycentric coordinates
-    """
 
-    face: TriangularFace
-    barycentricCords: tuple[float, float, float]  # counter clock wise order
-
-
-class Segment:
-    endpoints: tuple[PointLocation, PointLocation]
-    timestamps: tuple[float, float]  # respective to the endpoints
-
-    index: int
-
-    def add_cx(self, summand, field) -> None:
-        """
-        C * v
-        Gathering
-        Interpolates the vector field
-        from grid vertices to trajectory points
-        to calculate the fitting error.
-
-        Compute vectors of this segment endpoints using its face and its barycentric coordinates (linear interpolation)
-        """
-
-        v1: float  # endpoint 1
-        v2: float  # endpoint 2
-
-        # v = sum of  <verticeVector_i * barycentricCord_i>  for each vertex of face ([0,1,2])
-
-        # linear interpolation to get vector of endpoint 1
-        v1 = \
-            field[self.endpoints[0].face.indices[0]] * self.endpoints[0].barycentricCords[0] + \
-            field[self.endpoints[0].face.indices[1]] * self.endpoints[0].barycentricCords[1] + \
-            field[self.endpoints[0].face.indices[2]] * self.endpoints[0].barycentricCords[2]
-
-        # linear interpolation to get vector of endpoint 2
-        v2 = \
-            field[self.endpoints[1].face.indices[0]] * self.endpoints[1].barycentricCords[0] + \
-            field[self.endpoints[1].face.indices[1]] * self.endpoints[1].barycentricCords[1] + \
-            field[self.endpoints[1].face.indices[2]] * self.endpoints[1].barycentricCords[2]
-
-        summand[self.index] += v1
-        summand[self.index + 1] += v2
-
-    def add_ctx(self, resulting_field, v, w=1.0) -> None:
-        """
-        C^T * v
-        Scattering
-        Distributes the influence of trajectory tangents
-        back to the grid vertices
-        to set up the optimization problem.
-
-        Does the reverse process of add_cx
-        For some vector inside a face, decompose it to each vertex
-
-        "At each grid vertex,
-        this is the aggregate velocity we'd like the vector field to have,
-        based on all the trajectories passing nearby."
-        """
-
-        v1 = v[self.index], v2 = v[self.index + 1]
-
-        resulting_field[self.endpoints[0].face.indices[0]] += w * v1 * self.endpoints[0].barycentricCords[0] / 3.0
-        resulting_field[self.endpoints[0].face.indices[1]] += w * v1 * self.endpoints[0].barycentricCords[1] / 3.0
-        resulting_field[self.endpoints[0].face.indices[2]] += w * v1 * self.endpoints[0].barycentricCords[2] / 3.0
-
-        resulting_field[self.endpoints[0].face.indices[0]] += w * v2 * self.endpoints[0].barycentricCords[0] / 6.0
-        resulting_field[self.endpoints[0].face.indices[1]] += w * v2 * self.endpoints[0].barycentricCords[1] / 6.0
-        resulting_field[self.endpoints[0].face.indices[2]] += w * v2 * self.endpoints[0].barycentricCords[2] / 6.0
-
-        resulting_field[self.endpoints[1].face.indices[0]] += w * v1 * self.endpoints[1].barycentricCords[0] / 6.0
-        resulting_field[self.endpoints[1].face.indices[1]] += w * v1 * self.endpoints[1].barycentricCords[1] / 6.0
-        resulting_field[self.endpoints[1].face.indices[2]] += w * v1 * self.endpoints[1].barycentricCords[2] / 6.0
-
-        resulting_field[self.endpoints[1].face.indices[0]] += w * v2 * self.endpoints[1].barycentricCords[0] / 3.0
-        resulting_field[self.endpoints[1].face.indices[1]] += w * v2 * self.endpoints[1].barycentricCords[1] / 3.0
-        resulting_field[self.endpoints[1].face.indices[2]] += w * v2 * self.endpoints[1].barycentricCords[2] / 3.0
-
-
-class CurveDescription:
-    """
-    Array of Segments
-
-    """
-
-    segments: np.ndarray[Segment]
-    index: int
-    length: float
-    # right hand side vectors
-    rhsx: np.ndarray
-    rhsy: np.ndarray
-
-    def __init__(self):
-        # todo: implement
-        """
-
-                CurveDescription Grid::curve_description(const PolygonalPath &path) const
-        {
-            CurveDescription result;
-            Vector &right_hand_side_x = result.rhsx;
-            Vector &right_hand_side_y = result.rhsy;
-            result.length = 0;
-            int numberOfPoints = path.numberOfPoints();
-            if(numberOfPoints < 2){
-                return result;
-            }
-
-            right_hand_side_x = Vector(2*(numberOfPoints-1));
-            right_hand_side_y = Vector(2*(numberOfPoints-1));
-
-            for(int i = 0 ; i < numberOfPoints - 1 ; ++i){
-                Vector2D current = toGrid(path.getPoint(i).first);
-                Vector2D next = toGrid(path.getPoint(i+1).first);
-                Vector2D midpoint = (current + next) * 0.5;
-                Vector2D desired_tangent = path.getTangent(i);
-                PointLocation location;
-            //initialize to avoid compilation warnings
-            location.barycentric_coords[0] = -1;
-            location.barycentric_coords[1] = -1;
-            location.barycentric_coords[2] = -1;
-                //
-            location.face = getFaceWherePointLies(midpoint);
-                Segment segment;
-                segment.endpoint[0] = location;
-                segment.endpoint[1] = location;
-                locate_point(segment.endpoint[0], current);
-                locate_point(segment.endpoint[1], next);
-                segment.time[0] = path.getPoint(i).second;
-                segment.time[1] = path.getPoint(i+1).second;
-                segment.index = 2 * i;
-                result.length += 2(segment.time[1] - segment.time[0]);
-                result.segments.push_back(segment);
-                right_hand_side_x[2*i]   = desired_tangent.X();
-                right_hand_side_x[2*i+1] = desired_tangent.X();
-                right_hand_side_y[2*i]   = desired_tangent.Y();
-                right_hand_side_y[2*i+1] = desired_tangent.Y();
-            }
-            return result;
-        }
-
-        """
-
-    def add_ctcx(self, result_x: np.ndarray, x: np.ndarray, k_global: float = 1):
-        """
-        chains Segment.add_cx and Segment.add_cTx for each segment in this curve
-        """
-
-        v = np.zeros(2 * len(self.segments))  # the "summand" parameter for add_cx and add_cTx methods
-
-        for segment in self.segments:  # for each segment in curve
-
-            k = k_global * (segment.time[1] - segment.time[
-                0])  # segment-specific weight  # the time interval (duration) of the segment scaled by a global constant.
-
-            segment.add_cx(v, x)  # calculate C*x for this segment and store it in 'v'.
-            segment.add_cTx(result_x, v,
-                            k)  # calculate C^T * (the result from step 1) and add it to the final result vector
-
-
-class Intersection:
-    location: PointLocation
-
-    indexV1: int
-    indexV2: int
-
-    lambda_: float  # interpolation factor in (1-alpha) v1 + alpha v2
-    dirAtIntersection: tuple[float, float]
-
-    distanceBetweenCurveVertices: float
-
-
-def sign(n: float) -> int:
-    if n == 0:
-        return 0
-    if n > 0:
-        return 1
-    else:
-        return -1
+"""
+    GRID
+"""
 
 class Grid:
     #  number of vertices along the axis
-    resolutionX: int
-    resolutionY: int
+    resolution_x: int
+    resolution_y: int
 
     #  bottom left coordinate of grid
     x: float
@@ -221,22 +33,22 @@ class Grid:
     def __init__(self, x: float, y: float, w: float, h: float, resolution_x: int, resolution_y: int):
 
         # m_* flags member variable (attribute)
-        self.resolutionX = resolution_x
-        self.resolutionY = resolution_y
+        self.resolution_x = resolution_x
+        self.resolution_y = resolution_y
         self.x = x
         self.y = y
         self.w = w
         self.h = h
 
         # escalas   (cord. grid) / (cord. mundo real)
-        self.delta_x = self.w / (self.resolutionX - 1)
-        self.delta_y = self.h / (self.resolutionY - 1)
+        self.delta_x = self.w / (self.resolution_x - 1)
+        self.delta_y = self.h / (self.resolution_y - 1)
 
     def get_vertex_index(self, x: int, y: int) -> int:
         """
             get linear index based on (x, y) coordinate
         """
-        return y * self.resolutionX + x
+        return y * self.resolution_x + x
 
     def get_face_where_point_lies(self, v: np.ndarray[float]) -> TriangularFace:
         """
@@ -246,9 +58,9 @@ class Grid:
         """
 
         if (  # coordinates out of range
-                (v[0] < 0 or v[0] > (self.resolutionX - 1.0))
+                (v[0] < 0 or v[0] > (self.resolution_x - 1.0))
                 or
-                (v[1] < 0 or v[1] > (self.resolutionY - 1.0))
+                (v[1] < 0 or v[1] > (self.resolution_y - 1.0))
         ):
             print("BAD POINT")
             exit(1)
@@ -263,27 +75,27 @@ class Grid:
         fy: float = v[1] - square_y
 
         if fx > fy:  # bottom triangle
-            face.indices = (  # counter clock wise order
+            face.indices = np.array([  # counter clock wise order
                 self.get_vertex_index(square_x, square_y),
                 self.get_vertex_index(square_x + 1, square_y),
                 self.get_vertex_index(square_x + 1, square_y + 1)
-            )
+            ])
 
         else:  # top triangle
-            face.indices = (  # counter clock wise order
+            face.indices = np.array([  # counter clock wise order
                 self.get_vertex_index(square_x, square_y),
                 self.get_vertex_index(square_x + 1, square_y + 1),
                 self.get_vertex_index(square_x, square_y + 1)
-            )
+            ])
 
         return face
 
     # resolution getters
     def get_resolution_x(self) -> int:
-        return self.resolutionX
+        return self.resolution_x
 
     def get_resolution_y(self) -> int:
-        return self.resolutionY
+        return self.resolution_y
 
     # coordinate converters
     def to_grid(self, world_point: np.ndarray) -> np.ndarray[float]:
@@ -291,8 +103,8 @@ class Grid:
         convert geographic ("world") coordinates into grid coordinates
         """
         return np.array([
-            (world_point[0] - self.x) / self.w * (self.resolutionX - 1.0),
-            (world_point[1] - self.y) / self.h * (self.resolutionY - 1.0)
+            (world_point[0] - self.x) / self.w * (self.resolution_x - 1.0),
+            (world_point[1] - self.y) / self.h * (self.resolution_y - 1.0)
         ])
 
     def to_world(self, grid_point: np.ndarray) -> np.ndarray:
@@ -301,25 +113,27 @@ class Grid:
 
         """
         return np.array([
-            grid_point[0] / (self.resolutionX - 1.0) * self.w + self.x,
-            grid_point[1] / (self.resolutionY - 1.0) * self.h + self.y
+            grid_point[0] / (self.resolution_x - 1.0) * self.w + self.x,
+            grid_point[1] / (self.resolution_y - 1.0) * self.h + self.y
         ])
 
-    def get_grid_vertex(self, index: int) -> np.ndarray:
+    def get_grid_vertex(self, index: int) -> np.ndarray[int]:
         """
         take linear index, return correspondent (x, y) coordinates
         """
         return np.array([
-            index % self.resolutionX,
-            index / self.resolutionX
+            index % self.resolution_x,
+            index // self.resolution_x
         ])
 
-    def locate_point(self, point_loc: PointLocation, point: np.ndarray) -> None:
+    def locate_point(self, point_loc: PointLocation, point: np.ndarray[float]) -> None:
         """
         Calculates the barycentric coordinates of a point within a triangular face.
 
         If face is fixed, set only barycentric coordinates within face.
         """
+        # todo: chatgpt says this calculation is wrong. Investigate.
+
         # Retrieve the three vertices of the triangular face
         vertices: tuple[np.ndarray, np.ndarray, np.ndarray] = (
             self.get_grid_vertex(point_loc.face.indices[0]),
@@ -354,9 +168,9 @@ class Grid:
         alpha = 1.0 - gamma - beta
 
         # store the results in the PointLocation object
-        point_loc.barycentricCords[0] = alpha
-        point_loc.barycentricCords[1] = beta
-        point_loc.barycentricCords[2] = gamma
+        point_loc.barycentric_cords[0] = alpha
+        point_loc.barycentric_cords[1] = beta
+        point_loc.barycentric_cords[2] = gamma
 
     def multiply_by_laplacian(self, first_component: np.ndarray[float], second_component: np.ndarray[float]) -> None:
         """
@@ -365,16 +179,16 @@ class Grid:
         """
 
         if (  # check dimensions
-                self.resolutionX * self.resolutionY != first_component.size or
-                self.resolutionX * self.resolutionY != second_component.size
+                self.resolution_x * self.resolution_y != first_component.size or
+                self.resolution_x * self.resolution_y != second_component.size
         ):
             print("Error while multiplying grid by vector. Incompatible dimensions.")
             exit(1)
 
-        number_of_vectors: int = self.resolutionX * self.resolutionY
+        number_of_vectors: int = self.resolution_x * self.resolution_y
 
-        newFirstComponent: np.ndarray[float] = np.zeros(number_of_vectors)
-        newSecondComponent: np.ndarray[float] = np.zeros(number_of_vectors)
+        new_first_component: np.ndarray[float] = np.zeros(number_of_vectors)
+        new_second_component: np.ndarray[float] = np.zeros(number_of_vectors)
 
         horizontal_cotangent_weight: float = self.delta_x / self.delta_y
         vertical_cotangent_weight: float = self.delta_y / self.delta_x
@@ -382,14 +196,14 @@ class Grid:
         for i in range(
                 number_of_vectors):  # number_of_vectors == numberOfVertices in the grid == resolution * resolution
 
-            row = i // self.resolutionX
-            col = i % self.resolutionX
+            row = i // self.resolution_x
+            col = i % self.resolution_x
 
             # considering grid constraints
             can_move_left: bool = col > 0
             can_move_down: bool = row > 0
-            can_move_right: bool = col < self.resolutionX - 1
-            can_move_up: bool = row < self.resolutionY - 1
+            can_move_right: bool = col < self.resolution_x - 1
+            can_move_up: bool = row < self.resolution_y - 1
 
             degree = 0.0
             accum1 = 0.0
@@ -429,7 +243,7 @@ class Grid:
 
             # DOWN
             if can_move_down:
-                neigh_index = i - self.resolutionX
+                neigh_index = i - self.resolution_x
                 coef = 0.0
 
                 if can_move_left:
@@ -445,7 +259,7 @@ class Grid:
 
             # UP
             if can_move_up:
-                neigh_index = i + self.resolutionX
+                neigh_index = i + self.resolution_x
                 coef = 0.0
 
                 if can_move_left:
@@ -460,12 +274,12 @@ class Grid:
                 degree += coef
 
             # update new components
-            newFirstComponent[i] = accum1 - degree * first_component[i]
-            newSecondComponent[i] = accum2 - degree * second_component[i]
+            new_first_component[i] = accum1 - degree * first_component[i]
+            new_second_component[i] = accum2 - degree * second_component[i]
 
         # Update the field
-        first_component[:] = newFirstComponent
-        second_component[:] = newSecondComponent
+        first_component[:] = new_first_component
+        second_component[:] = new_second_component
 
     def multiply_by_laplacian2(self, first_component: np.ndarray[float], row_length2: np.ndarray[float]) -> None:
         """
@@ -473,11 +287,11 @@ class Grid:
 
         """
 
-        if self.resolutionX * self.resolutionY != first_component.size:
+        if self.resolution_x * self.resolution_y != first_component.size:
             print("Error while multiplying grid by vector. Incompatible dimensions.")
             exit(1)
 
-        number_of_vectors = self.resolutionX * self.resolutionY
+        number_of_vectors = self.resolution_x * self.resolution_y
 
         new_first_component = np.zeros(number_of_vectors)
         row_length2[:] = np.zeros(number_of_vectors)
@@ -488,13 +302,13 @@ class Grid:
         for i in range(number_of_vectors):
             row_length2[i] = 0.0
 
-            row = i // self.resolutionX
-            col = i % self.resolutionX
+            row = i // self.resolution_x
+            col = i % self.resolution_x
 
             can_move_left = col > 0
             can_move_down = row > 0
-            can_move_right = col < self.resolutionX - 1
-            can_move_up = row < self.resolutionY - 1
+            can_move_right = col < self.resolution_x - 1
+            can_move_up = row < self.resolution_y - 1
 
             degree = 0.0
             accum1 = 0.0
@@ -533,7 +347,7 @@ class Grid:
 
             # DOWN
             if can_move_down:
-                neigh_index = i - self.resolutionX
+                neigh_index = i - self.resolution_x
                 coef = 0.0
 
                 if can_move_left:
@@ -549,7 +363,7 @@ class Grid:
 
             # UP
             if can_move_up:
-                neigh_index = i + self.resolutionX
+                neigh_index = i + self.resolution_x
                 coef = 0.0
 
                 if can_move_left:
@@ -610,10 +424,12 @@ class Grid:
             while next_y < y2:
                 u = (next_y - y1) / (y2 - y1)
 
-                p = Grid.Inter()
+                p: Grid.Inter = Grid.Inter()
 
-                p.grid_point = np.interp(g1.grid_point, g2.grid_point, u)
-                p.grid_point.y = next_y  # force exact integer coordinate
+                p.grid_point = (1 - u) * g1.grid_point + u * g2.grid_point  # linear interpolation
+
+
+                p.grid_point[1] = next_y  # force exact integer coordinate
                 p.u = u
                 p.kind = Grid.Inter.Horizontal
 
@@ -642,7 +458,7 @@ class Grid:
 
             # unflip back
             for p in reverse_result:
-                p.grid_point.y = t - p.grid_point.y
+                p.grid_point[1] = t - p.grid_point[1]
 
             return reverse_result
 
@@ -673,7 +489,7 @@ class Grid:
         return flipped_result
 
     @staticmethod
-    def get_u_from_points(v1: np.ndarray, v2: np.ndarray, u: np.ndarray):
+    def get_u_from_points(v1: np.ndarray[float], v2: np.ndarray[float], u: np.ndarray[float]) -> float:
         """
         "inverse" of lerp:
         takes endpoints and a midpoint,
@@ -736,7 +552,7 @@ class Grid:
             for h in horiz:
 
                 # --- Vertical intersections --- between last intersection and h
-                vert = self.clip_against_vertical_lines(inters[-1], h)
+                vert: list[Grid.Inter] = self.clip_against_vertical_lines(inters[-1], h)
 
                 # Update u for each vertical intersection
                 for v in vert:

@@ -3,7 +3,7 @@ from typing import Optional
 
 from Point2D import Point2D
 
-Vector = np.ndarray  # replace all Vector2D and Vector classes in original implementation
+Vector = np.ndarray[float]  # replace all Vector2D and Vector classes in original implementation
 
 
 class PolygonalPath2D:
@@ -17,7 +17,7 @@ class PolygonalPath2D:
 
     def __init__(
             self,
-            points: list[Point2D],
+            points: Optional[list[Point2D]] = None,
             tangents: Optional[list[Vector]] = None
     ):
         """
@@ -28,6 +28,12 @@ class PolygonalPath2D:
             tangents: An optional list of pre-calculated tangent vectors (NumPy arrays).
             If None, they will be calculated automatically.
         """
+
+        if points is None:
+            points = []
+        if tangents is None:
+            tangents = []
+
 
         # POINTS
         self.points = points
@@ -95,5 +101,5 @@ class PolygonalPath2D:
             """ Algebric notation w/ 2 decimal plate precision """
             return f"({v[0]:.2f}, {v[1]:.2f})"
 
-        path_str = " -> ".join([f"{format_vec(p.space())}@t={p.time():.1f}" for p in self.points])
+        path_str = " -> ".join([f"{format_vec(p.space)}@t={p.time:.1f}" for p in self.points])
         return f"PolygonalPath object:\n[{path_str}]"
