@@ -4,9 +4,98 @@ from Point2D import Point2D
 
 import numpy as np
 
-from Grid_aux import TriangularFace, PointLocation, Segment, CurveDescription
+from Grid_aux import TriangularFace, PointLocation, Segment
 from PolygonalPath2D import PolygonalPath2D  # for Grid.clip_line()
 
+
+
+
+class CurveDescription:
+    """
+    Array of Segments
+
+    """
+
+    segments: list[Segment]
+    index: int
+    length: float
+    # right hand side vectors
+    rhsx: np.ndarray[float]
+    rhsy: np.ndarray[float]
+
+    def __init__(self, path: PolygonalPath2D, grid: Grid):
+        """
+        Create a CurveDescription object (array of segments)  # notice how a segment is relative to its grid
+        from a PolygonalPath one (sequence of timestamped 2D points)
+        with respect to the given grid object parameters
+
+        """
+
+        self.segments = []
+        self.length = 0
+        self.rhsx = np.array([])  # Initialize as empty
+        self.rhsy = np.array([])
+
+        number_of_points: int = path.number_of_points()
+        if number_of_points < 2:
+            return
+
+
+        self.rhsx = np.zeros(2 * (number_of_points - 1))
+        self.rhsy = np.zeros(2 * (number_of_points - 1))
+
+
+        for i in range(number_of_points-1):
+
+            current_point: np.ndarray[float] = grid.to_grid(path.get_point(i).space)
+            next_point: np.ndarray[float] = grid.to_grid(path.get_point(i + 1).space)
+            mid_point: np.ndarray[float] = (current_point + next_point) * 0.5
+
+            desired_tangent: np.ndarray[float] = path.get_tangent(i)
+
+            location: PointLocation = PointLocation()
+
+            location.barycentric_cords[0] = -1
+            location.barycentric_cords[1] = -1
+            location.barycentric_cords[2] = -1
+
+            location.face = grid.get_face_where_point_lies(mid_point)
+
+
+            segment: Segment = Segment()
+
+            segment.endpoints[0] = location
+            segment.endpoints[1] = location
+
+            grid.locate_point(segment.endpoints[0], current_point)
+            grid.locate_point(segment.endpoints[1], next_point)
+
+            segment.timestamps[0] = path.get_point(i).time
+            segment.timestamps[1] = path.get_point(i + 1).time
+
+            segment.index = 2 * i
+
+            self.length += (segment.timestamps[1] - segment.timestamps[0])
+            self.segments.append(segment)
+
+            self.rhsx[2 * i] = desired_tangent[0]
+            self.rhsx[2 * i + 1] = desired_tangent[0]
+            self.rhsy[2 * i] = desired_tangent[1]
+            self.rhsy[2 * i + 1] = desired_tangent[1]
+
+    def add_ctcx(self, result_x: np.ndarray[float], x: np.ndarray[float], k_global: float = 1):
+        """
+        chains Segment.add_cx and Segment.add_cTx for each segment in this curve
+        """
+
+        v: np.ndarray[float] = np.zeros(2 * len(self.segments))  # the "summand" parameter for add_cx and add_cTx methods
+
+        for segment in self.segments:  # for each segment in curve
+
+            k = k_global * (segment.timestamps[1] - segment.timestamps[0])  # segment-specific weight  # the time interval (duration) of the segment scaled by a global constant.
+
+            segment.add_cx(v, x)  # calculate C*x for this segment and store it in 'v'.
+            segment.add_ctx(result_x, v,k)  # calculate C^T * (the result from step 1) and add it to the final result vector
 
 
 """
@@ -29,6 +118,13 @@ class Grid:
     #  distance between adjacent grid vertices
     delta_x: float
     delta_y: float
+
+    def test_parameters(self, target: list):
+        return (
+            [self.resolution_x, self.resolution_y, self.x, self.y, self.w, self.h, self.delta_x, self.delta_y]
+            ==
+            target
+        )
 
     def __init__(self, x: float, y: float, w: float, h: float, resolution_x: int, resolution_y: int):
 
@@ -98,7 +194,7 @@ class Grid:
         return self.resolution_y
 
     # coordinate converters
-    def to_grid(self, world_point: np.ndarray) -> np.ndarray[float]:
+    def to_grid(self, world_point: np.ndarray[float]) -> np.ndarray[float]:
         """
         convert geographic ("world") coordinates into grid coordinates
         """
@@ -107,7 +203,7 @@ class Grid:
             (world_point[1] - self.y) / self.h * (self.resolution_y - 1.0)
         ])
 
-    def to_world(self, grid_point: np.ndarray) -> np.ndarray:
+    def to_world(self, grid_point: np.ndarray[float]) -> np.ndarray[float]:
         """
         convert grid coordinates into geographic ("world") coordinates
 

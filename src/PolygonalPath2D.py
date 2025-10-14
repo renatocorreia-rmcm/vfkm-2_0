@@ -3,7 +3,7 @@ from typing import Optional
 
 from Point2D import Point2D
 
-Vector = np.ndarray[float]  # replace all Vector2D and Vector classes in original implementation
+Vector = np.ndarray[float]
 
 
 class PolygonalPath2D:
@@ -15,13 +15,13 @@ class PolygonalPath2D:
     points: list[Point2D]
     tangents: list[Vector]
 
+
     def __init__(
             self,
             points: Optional[list[Point2D]] = None,
             tangents: Optional[list[Vector]] = None
     ):
         """
-
         Args:
             points: A list of PointNDs
 
@@ -32,17 +32,11 @@ class PolygonalPath2D:
         if points is None:
             points = []
         if tangents is None:
-            tangents = []
+            tangents = self._calculate_tangents()
 
 
-        # POINTS
         self.points = points
-
-        # TANGENTS
-        if tangents:
-            self.tangents = tangents
-        else:
-            self.tangents = self._calculate_tangents()
+        self.tangents = tangents
 
     def number_of_points(self) -> int:
         return len(self.points)
@@ -87,19 +81,6 @@ class PolygonalPath2D:
 
         return calculated_tangents
 
-    def add_point(self, index: int, new_point: Point2D, tangent: Vector):
+    def add_point(self, index: int, new_point: Point2D, tangent: Vector) -> None:
         self.points.insert(index, new_point)
         self.tangents.insert(index, tangent)
-
-    def __str__(self) -> str:
-        """
-        Provides a user-friendly string representation of the path.
-
-        """
-
-        def format_vec(v: Vector) -> str:  # helper function to format a NumPy array nicely for printing
-            """ Algebric notation w/ 2 decimal plate precision """
-            return f"({v[0]:.2f}, {v[1]:.2f})"
-
-        path_str = " -> ".join([f"{format_vec(p.space)}@t={p.time:.1f}" for p in self.points])
-        return f"PolygonalPath object:\n[{path_str}]"

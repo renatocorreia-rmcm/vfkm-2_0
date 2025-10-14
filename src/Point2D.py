@@ -1,4 +1,4 @@
-from typing import Optional, Union
+from typing import Optional
 import numpy as np
 
 Vector = np.ndarray  # in this class, will represent the space coordinates of some point
@@ -11,13 +11,14 @@ class Point2D:
     theoretically is already a ND point since it takes a nd array of coordinates
     """
 
-    point2D: tuple[Vector, float]  # space cooordinates, time
+    point2D: tuple[Vector, float]  # space coordinates, time
+
 
     def __init__(
             self,
-            point2D: Optional[tuple[Vector, float]] = None  # could use space and time parameters separately instead of in a 2-uple
+            point2d: tuple[Vector, float]
     ):
-        self.point2D = point2D
+        self.point2D = point2d
 
     @property
     def space(self) -> Vector:
