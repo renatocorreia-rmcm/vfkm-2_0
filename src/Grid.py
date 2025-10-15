@@ -145,14 +145,12 @@ class Grid:
 
             create and return a new `face` object with the respective properties
         """
-
         if (  # coordinates out of range
                 (v[0] < 0 or v[0] > (self.resolution_x - 1.0))
                 or
                 (v[1] < 0 or v[1] > (self.resolution_y - 1.0))
         ):
-            print("BAD POINT")
-            exit(1)
+            raise ValueError("Point out of grid bounds")
 
         face: TriangularFace = TriangularFace()
 
@@ -239,8 +237,7 @@ class Grid:
         )
 
         if det == 0:
-            print("det == 0!!!")
-            exit(1)
+            raise ValueError("Degenerate triangle with zero determinant in locate_point")
 
         # each barycentric coordinate is a ratio of the area of a sub-triangle to the area of the main triangle.
 
