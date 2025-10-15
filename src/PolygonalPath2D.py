@@ -31,11 +31,12 @@ class PolygonalPath2D:
 
         if points is None:
             points = []
+
+        self.points = points
+
         if tangents is None:
             tangents = self._calculate_tangents()
 
-
-        self.points = points
         self.tangents = tangents
 
     def number_of_points(self) -> int:
@@ -84,3 +85,6 @@ class PolygonalPath2D:
     def add_point(self, index: int, new_point: Point2D, tangent: Vector) -> None:
         self.points.insert(index, new_point)
         self.tangents.insert(index, tangent)
+
+    def __repr__(self):
+        return f""" points: {self.points} \n tangents: {self.tangents}"""

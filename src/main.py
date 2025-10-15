@@ -8,76 +8,7 @@ from Point2D import Point2D
 
 from Grid import Grid
 
-
-# POINT 2D
-"""
-Point2D([s, t])
-
-space() -> s
-
-time -> t
-"""
-
-
-# POLYGONAL PATH 2D
-"""
-PolygonalPath2D([points])
-PolygonalPath2D([points], [tangents])
-
-number_of_points()
-
-get_point(index)
-
-get_tangent(index)
-
-_calculate_tangents()
-
-add_point(index, new_point, tangent)
-"""
-
-
-# VECTOR FIELD 2D
-"""
-VectorField2D()
-"""
-
-
-# CLUSTER
-"""
-cluster(name, parent, vector_field)
-
-clear_children()
-
-add_child(Cluster)
-"""
-
-# TRIANGULAR FACE
-"""
-TriagularFace()
-"""
-
-# POINT LOCATION
-"""
-PointLocation(face, barycentric_cords)
-"""
-
-# SEGMENT
-"""
-Segment(endpoints, timestamps)
-add_cx(summand, field)
-add_ctx(resulting_field, v, w)
-"""
-
-# CURVE DESCRIPTION
-"""
-CurveDescription(path, grid)
-add_ctcx(result_x, x, k_global)
-"""
-
-# GRID
-"""
-"""
-
+from PolygonalPath2D import PolygonalPath2D
 
 # testing grid
 
@@ -95,15 +26,30 @@ grid_arguments = [0, 0, 1, 1, 3, 3]
 grid_parameters = [3, 3, 0, 0, 1, 1, 0.5, 0.5]
 
 
-print("testing")
+
+# CONSTRUCTOR
 
 g = Grid(*grid_arguments)
 
-assert g.x == 0.0
-assert g.y == 0.0
-assert g.w == 1.0
-assert g.h == 1.0
-assert g.resolution_x == 3
-assert g.resolution_y == 3
-assert g.delta_x == 0.5
-assert g.delta_y == 0.5
+assert [g.resolution_x, g.resolution_y, g.x, g.y, g.w, g.h, g.delta_x, g.delta_y] == grid_parameters
+
+# CLIPLINE
+
+raw_points = [
+	[0.05, 0.6, 0],
+	[0.45, 0.65, 0.25],
+	[0.75, 0.55, 0.5],
+	[0.95, 0.6, 1]
+]
+
+points: list[Point2D] = [Point2D((np.array(p[:2]), p[-1])) for p in raw_points]
+
+path = PolygonalPath2D(points)
+
+print("\npath before tesselation")
+print(path)
+
+g.clip_line(path)
+
+print("\npath after tesselation")
+print(path)

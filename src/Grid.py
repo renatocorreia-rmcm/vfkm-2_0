@@ -119,13 +119,6 @@ class Grid:
     delta_x: float
     delta_y: float
 
-    def test_parameters(self, target: list):
-        return (
-            [self.resolution_x, self.resolution_y, self.x, self.y, self.w, self.h, self.delta_x, self.delta_y]
-            ==
-            target
-        )
-
     def __init__(self, x: float, y: float, w: float, h: float, resolution_x: int, resolution_y: int):
 
         # m_* flags member variable (attribute)
