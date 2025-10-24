@@ -1,9 +1,9 @@
 """"""
 
 import numpy as np
+from scipy.sparse.linalg import cg  # conjugate gradient solver
 
 from Grid import Grid, CurveDescription
-
 
 
 class ProblemSettings:
@@ -128,71 +128,16 @@ def cg_solve(
         problem: ProblemSettings,
         b: np.ndarray[float],
         x: np.ndarray[float]
-) -> None:
+) -> int:
     """
     solve A*x=b without setting up whole matrix
 
     cg is a iterative solver
     começa com um chute pra x e vai melhorando
+    
+    return exit code
     """
-
     
+    x, exit_code = cg(A, b)
 
-
-
-
-
-"""
-
-void optimizeVectorFieldWithWeights(  // optimize a single vector field (using smoothness)
-    Grid &grid, Vector &initialGuessX, Vector &initialGuessY,
-    const vector<int> &curveIndices,
-    const vector<CurveDescription> &curve_descriptions,
-    float totalCurveLength,
-    float smoothnessWeight
-)
-{
-    
-    // optimizeVectorFieldWithWeights: given an initial guess for the vector
-    // field components, construct the RHS from curve constraints and solve
-    // two independent linear systems (one per component) using CG. The
-    // solution overwrites the provided initialGuessX/Y vectors.
-
-
-
-    // Compute independent (right-hand side) terms for the linear systems
-    // corresponding to the X and Y components of the vector field.
-    int numberOfVertices = grid.getResolutionX() * grid.getResolutionY();
-
-    Vector indepx(numberOfVertices), indepy(numberOfVertices);
-    indepx.setValues(0.0f);
-    indepy.setValues(0.0f);
-
-    // Sum contributions from each curve segment into the RHS vectors.
-    // Each segment's influence is weighted by its relative curve length and 
-    // the (1 - smoothnessWeight) data-term factor.
-    for(size_t k = 0; k < curveIndices.size() ; ++k) {  // for each curve
-        int i = curveIndices[k];
-        const CurveDescription &curve = curve_descriptions[i];
-
-        for (size_t j=0; j<curve.segments.size(); ++j) {  // for each segment in curve
-            float k = (1.0 - smoothnessWeight) * (curve.segments[j].time[1] - curve.segments[j].time[0])/totalCurveLength;  // weighting factor
-            curve.segments[j].add_cTx(indepx, curve.rhsx, k);
-            curve.segments[j].add_cTx(indepy, curve.rhsy, k);
-        }
-    }
-
-    ProblemSettings prob(
-        grid, curveIndices, curve_descriptions, totalCurveLength, smoothnessWeight
-    );
-
-    Vector x(initialGuessX), y(initialGuessY);
-
-    // solve linear system
-    cg_solve(prob, indepx, x);
-    cg_solve(prob, indepy, y);
-    initialGuessX.setValues(x);
-    initialGuessY.setValues(y);
-}
-
-"""
+    return exit_code
