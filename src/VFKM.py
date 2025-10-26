@@ -1,15 +1,19 @@
 """"""
 
 import numpy as np
+
 from scipy.sparse.linalg import cg  # conjugate gradient solver
+from scipy.sparse.linalg import LinearOperator  # class to incorporate original "multiplyByA()"
+
+from functools import partial
 
 from Grid import Grid, CurveDescription
 
 
 class ProblemSettings:
     """
-    struct carrying problem data for solvers.
-    """
+	struct carrying problem data for solvers.
+	"""
 
     grid: Grid
     curve_indices: np.ndarray[int]  # respective to cluster
@@ -32,13 +36,12 @@ class ProblemSettings:
         self.smoothness_weight = smoothness_weight
 
 
-
 class VFKM:
 
     def __init__(self, size: int):
         """
-        initialize new VF axis
-        """
+		initialize new VF axis
+		"""
 
         ax = np.zeros(shape=size)
         ay = np.zeros(shape=size)
@@ -74,8 +77,6 @@ def compute_error_implicit(
     return error * (1.0 - smoothness_weight) / total_curve_length
 
 
-
-
 def optimize_vector_field_with_weights(
         grid: Grid,
         initial_guess_x: np.ndarray[float], initial_guess_y: np.ndarray[float],
@@ -85,15 +86,14 @@ def optimize_vector_field_with_weights(
         smoothness_weight: float
 ) -> None:
     """
-    optimize a single vector field (using smoothness)
+	optimize a single vector field (using smoothness)
 
-    Given an initial guess for the vector field components,
-    construct the RHS from curve constraints
-    and solve two independent linear systems (one per component) using CG.
+	Given an initial guess for the vector field components,
+	construct the RHS from curve constraints
+	and solve two independent linear systems (one per component) using CG.
 
-    The solution overwrites the provided initialGuessX/Y vectors.
-    """
-
+	The solution overwrites the provided initialGuessX/Y vectors.
+	"""
 
     number_of_vertices = grid.get_resolution_x() * grid.get_resolution_y()
 
@@ -102,16 +102,16 @@ def optimize_vector_field_with_weights(
 
     for k in range(len(curve_indices)):  # for each curve
         i = curve_indices[k]
-        curve = curve_descriptions[i]
+        curve: CurveDescription = curve_descriptions[i]
 
         for j in range(len(curve.segments)):  # for each segment in curve
             # Sum contributions into the RHS vectors.
-            k_factor = (1.0 - smoothness_weight) * (curve.segments[j].time[1] - curve.segments[j].time[0]) / total_curve_length  # weighting factor  # Each segment's influence is weighted by the [ (1 - smoothness_weight) data-term factor ] and [ its relative curve length ].
+            k_factor = (1.0 - smoothness_weight) * (curve.segments[j].time[1] - curve.segments[j].time[
+                0]) / total_curve_length  # weighting factor  # Each segment's influence is weighted by the [ (1 - smoothness_weight) data-term factor ] and [ its relative curve length ].
             curve.segments[j].add_cTx(indepx, curve.rhsx, k_factor)
             curve.segments[j].add_cTx(indepy, curve.rhsy, k_factor)
 
     problem = ProblemSettings(grid, curve_indices, curve_descriptions, total_curve_length, smoothness_weight)
-
 
     # aux vars for calling cg_solve()
     x = initial_guess_x.copy()
@@ -124,20 +124,48 @@ def optimize_vector_field_with_weights(
     initial_guess_x = x.copy()
     initial_guess_y = y.copy()
 
+
+def multiply_by_laplacian(Ax: np.ndarray[float]) -> None:
+	"""
+	Overwrites AX
+
+	:return:
+	"""
+
+
+def multiply_by_A(v: np.ndarray[float], problem: ProblemSettings) -> np.ndarray[float]:
+    """
+	Compute A*v without setting up whole matrix
+
+	"""
+
+    # todo: implement
+
+    return v
+
+
 def cg_solve(
         problem: ProblemSettings,
         b: np.ndarray[float],
         x: np.ndarray[float]
 ) -> int:
     """
-    solve A*x=b without setting up whole matrix
+	call scipy cg solver
 
-    cg is a iterative solver
-    começa com um chute pra x e vai melhorando
-    
-    return exit code
-    """
-    
-    x, exit_code = cg(A, b)
+	return exit code
+	"""
+
+    # SET SCIPY CG SOLVER PARAMETERS
+
+    shape_A = (
+        2 * problem.grid.resolution_x * problem.grid.resolution_y,
+        2 * problem.grid.resolution_x * problem.grid.resolution_y
+    )
+    matvec_A = partial(multiply_by_A, problem=problem)  # pre-set 'problem' parameter
+    linear_operator_A = LinearOperator(shape=shape_A, matvec=matvec_A, dtype=float)
+
+    # CALL SCIPY CG SOLVER
+
+    x, exit_code = cg(linear_operator_A, b)
 
     return exit_code
