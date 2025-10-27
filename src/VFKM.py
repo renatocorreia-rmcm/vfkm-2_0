@@ -137,6 +137,10 @@ def multiply_by_A(v: np.ndarray[float], problem: ProblemSettings) -> np.ndarray[
     """
 	Compute A*v without setting up whole matrix
 
+    A*v=b is the derivative of error formula (a quadratic equation derivative results in a linear systems of equations)
+    A is it second order derivative
+
+    computed as  A_error * x + A_smooth * x
 	"""
 
     # todo: implement
