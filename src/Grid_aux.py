@@ -101,7 +101,7 @@ class Segment:
         summand[self.index] += v1
         summand[self.index + 1] += v2
 
-    def add_ctx(self, resulting_field: np.ndarray[float], v: np.ndarray[float], w: float=1.0) -> None:
+    def add_cTx(self, resulting_field: np.ndarray[float], v: np.ndarray[float], w: float=1.0) -> None:
         """
         C^T * v
         Scattering

@@ -83,7 +83,7 @@ class CurveDescription:
             self.rhsy[2 * i] = desired_tangent[1]
             self.rhsy[2 * i + 1] = desired_tangent[1]
 
-    def add_ctcx(self, result_x: np.ndarray[float], x: np.ndarray[float], k_global: float = 1):
+    def add_cTcx(self, result_x: np.ndarray[float], x: np.ndarray[float], k_global: float = 1):
         """
         chains Segment.add_cx and Segment.add_cTx for each segment in this curve
         """
@@ -95,7 +95,7 @@ class CurveDescription:
             k = k_global * (segment.timestamps[1] - segment.timestamps[0])  # segment-specific weight  # the time interval (duration) of the segment scaled by a global constant.
 
             segment.add_cx(v, x)  # calculate C*x for this segment and store it in 'v'.
-            segment.add_ctx(result_x, v,k)  # calculate C^T * (the result from step 1) and add it to the final result vector
+            segment.add_cTx(result_x, v, k)  # calculate C^T * (the result from step 1) and add it to the final result vector
 
 
 """
@@ -367,7 +367,7 @@ class Grid:
         first_component[:] = new_first_component
         second_component[:] = new_second_component
 
-    def multiply_by_laplacian2(self, first_component: np.ndarray[float], row_length2: np.ndarray[float]) -> None:
+    def multiply_by_laplacian2(self, first_component: np.ndarray[float]) -> None:
         """
         multiply only one vector field component by the laplacian
 
@@ -380,13 +380,11 @@ class Grid:
         number_of_vectors = self.resolution_x * self.resolution_y
 
         new_first_component = np.zeros(number_of_vectors)
-        row_length2[:] = np.zeros(number_of_vectors)
 
         horizontal_cotangent_weight = self.delta_x / self.delta_y
         vertical_cotangent_weight = self.delta_y / self.delta_x
 
         for i in range(number_of_vectors):
-            row_length2[i] = 0.0
 
             row = i // self.resolution_x
             col = i % self.resolution_x
@@ -412,7 +410,6 @@ class Grid:
                 coef /= 2.0
 
                 accum1 += coef * first_component[neigh_index]
-                row_length2[i] += coef * coef
                 degree += coef
 
             # RIGHT
@@ -428,7 +425,6 @@ class Grid:
                 coef /= 2.0
 
                 accum1 += coef * first_component[neigh_index]
-                row_length2[i] += coef * coef
                 degree += coef
 
             # DOWN
@@ -444,7 +440,6 @@ class Grid:
                 coef /= 2.0
 
                 accum1 += coef * first_component[neigh_index]
-                row_length2[i] += coef * coef
                 degree += coef
 
             # UP
@@ -460,15 +455,14 @@ class Grid:
                 coef /= 2.0
 
                 accum1 += coef * first_component[neigh_index]
-                row_length2[i] += coef * coef
                 degree += coef
 
             # update component
             new_first_component[i] = accum1 - degree * first_component[i]
-            row_length2[i] += degree * degree
 
         # update original field in place
         first_component[:] = new_first_component
+
 
     class Inter:
         """

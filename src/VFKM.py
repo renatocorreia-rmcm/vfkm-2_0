@@ -12,8 +12,8 @@ from Grid import Grid, CurveDescription
 
 class ProblemSettings:
     """
-	struct carrying problem data for solvers.
-	"""
+    struct carrying problem data for solvers.
+    """
 
     grid: Grid
     curve_indices: np.ndarray[int]  # respective to cluster
@@ -40,8 +40,8 @@ class VFKM:
 
     def __init__(self, size: int):
         """
-		initialize new VF axis
-		"""
+        initialize new VF axis
+        """
 
         ax = np.zeros(shape=size)
         ay = np.zeros(shape=size)
@@ -86,14 +86,14 @@ def optimize_vector_field_with_weights(
         smoothness_weight: float
 ) -> None:
     """
-	optimize a single vector field (using smoothness)
+    optimize a single vector field (using smoothness)
 
-	Given an initial guess for the vector field components,
-	construct the RHS from curve constraints
-	and solve two independent linear systems (one per component) using CG.
+    Given an initial guess for the vector field components,
+    construct the RHS from curve constraints
+    and solve two independent linear systems (one per component) using CG.
 
-	The solution overwrites the provided initialGuessX/Y vectors.
-	"""
+    The solution overwrites the provided initialGuessX/Y vectors.
+    """
 
     number_of_vertices = grid.get_resolution_x() * grid.get_resolution_y()
 
@@ -106,7 +106,7 @@ def optimize_vector_field_with_weights(
 
         for j in range(len(curve.segments)):  # for each segment in curve
             # Sum contributions into the RHS vectors.
-            k_factor = (1.0 - smoothness_weight) * (curve.segments[j].time[1] - curve.segments[j].time[
+            k_factor = (1.0 - smoothness_weight) * (curve.segments[j].timestamps[1] - curve.segments[j].timestamps[
                 0]) / total_curve_length  # weighting factor  # Each segment's influence is weighted by the [ (1 - smoothness_weight) data-term factor ] and [ its relative curve length ].
             curve.segments[j].add_cTx(indepx, curve.rhsx, k_factor)
             curve.segments[j].add_cTx(indepy, curve.rhsy, k_factor)
@@ -125,39 +125,74 @@ def optimize_vector_field_with_weights(
     initial_guess_y = y.copy()
 
 
-def multiply_by_laplacian(Ax: np.ndarray[float]) -> None:
-	"""
-	Overwrites AX
-
-	:return:
-	"""
-
-
 def multiply_by_A(v: np.ndarray[float], problem: ProblemSettings) -> np.ndarray[float]:
     """
-	Compute A*v without setting up whole matrix
+    Compute A*v without setting up the matrix
 
     A*v=b is the derivative of error formula (a quadratic equation derivative results in a linear systems of equations)
     A is it second order derivative
 
-    computed as  A_error * x + A_smooth * x
-	"""
+    computed as  A_fit-error * x + A_smooth-error * x
+    """
 
-    # todo: implement
 
-    return v
+    grid: Grid = problem.grid
+    num_vertices: int = grid.get_resolution_x() * grid.get_resolution_y()
+
+    result_x: np.ndarray[float] = np.zeros(shape=num_vertices, dtype=float)
+    smoothness_weight = problem.smoothness_weight
+    result_x.fill(0)  # Set initial result to zero
+
+
+
+    # FIT PENALTY
+
+
+    curve_indices = problem.curve_indices
+    curve_descriptions = problem.curve_descriptions
+
+    total_curve_length = problem.total_curve_length
+    k_fit = (1.0 - smoothness_weight) / total_curve_length  # normalization factor for FIT error
+
+    for k in range(len(curve_indices)):  # For each curve in cluster
+        i = curve_indices[k]  # Get its index
+        curve = curve_descriptions[i]  # Load the curve
+
+        # Add FIT contribution of this curve to result
+        curve.add_cTcx(result_x, v, k_fit)
+
+
+
+    # SMOOTH PENALTY
+
+    Ax = v.copy()  # Ax = v (initial copy of v)
+
+    # DISCRETIZED LAPLACIAN
+    grid.multiply_by_laplacian2(Ax)  # Ax = L*x
+    grid.multiply_by_laplacian2(Ax)  # Ax = L^T * L * x (laplaciano discretizado é uma matriz simétrica L^T = L)
+
+    # Normalization
+    k_smooth = smoothness_weight / num_vertices  # normalization factor for SMOOTH error
+    Ax *= k_smooth
+
+    # Add SMOOTH contribution of this curve to result
+    result_x += Ax
+
+
+
+    return result_x
+
 
 
 def cg_solve(
         problem: ProblemSettings,
         b: np.ndarray[float],
-        x: np.ndarray[float]
 ) -> int:
     """
-	call scipy cg solver
+    interface for scipy cg solver
 
-	return exit code
-	"""
+    return exit code
+    """
 
     # SET SCIPY CG SOLVER PARAMETERS
 
