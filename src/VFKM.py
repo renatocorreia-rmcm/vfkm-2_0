@@ -38,7 +38,10 @@ class ProblemSettings:
 
 class VFKM:
 
-    def __init__(self, size: int):
+    def __init__(
+            self,
+            size: int
+    ):
         """
         initialize new VF axis
         """
@@ -74,6 +77,7 @@ def compute_error_implicit(
         error += (this_error_x + this_error_y) * curve.length
 
     assert error >= 0.0
+
     return error * (1.0 - smoothness_weight) / total_curve_length
 
 
@@ -97,6 +101,7 @@ def optimize_vector_field_with_weights(
 
     number_of_vertices = grid.get_resolution_x() * grid.get_resolution_y()
 
+    # independent terms //  rhs terms //  b_x, b_y
     indepx = np.zeros(number_of_vertices, dtype=float)
     indepy = np.zeros(number_of_vertices, dtype=float)
 
@@ -106,26 +111,29 @@ def optimize_vector_field_with_weights(
 
         for j in range(len(curve.segments)):  # for each segment in curve
             # Sum contributions into the RHS vectors.
-            k_factor = (1.0 - smoothness_weight) * (curve.segments[j].timestamps[1] - curve.segments[j].timestamps[
-                0]) / total_curve_length  # weighting factor  # Each segment's influence is weighted by the [ (1 - smoothness_weight) data-term factor ] and [ its relative curve length ].
+            k_factor = (1.0 - smoothness_weight) * (curve.segments[j].timestamps[1] - curve.segments[j].timestamps[0]) / total_curve_length  # weighting factor  # Each segment's influence is weighted by the [ (1 - smoothness_weight) data-term factor ] and [ its relative curve length ].
             curve.segments[j].add_cTx(indepx, curve.rhsx, k_factor)
             curve.segments[j].add_cTx(indepy, curve.rhsy, k_factor)
 
     problem = ProblemSettings(grid, curve_indices, curve_descriptions, total_curve_length, smoothness_weight)
 
-    # aux vars for calling cg_solve()
-    x = initial_guess_x.copy()
-    y = initial_guess_y.copy()
+    # initial guesses: previous vector fields
+    x0 = initial_guess_x.copy()
+    y0 = initial_guess_y.copy()
 
     # solve linear system using Conjugate Gradient (cg_solve)
-    cg_solve(problem, indepx, x)
-    cg_solve(problem, indepy, y)
+    x, x_exit_code = cg_solve(problem, indepx, x0)
+    y, y_exit_code = cg_solve(problem, indepy, y0)
 
-    initial_guess_x = x.copy()
-    initial_guess_y = y.copy()
+    # update previous vector vield values
+    initial_guess_x[:] = x
+    initial_guess_y[:] = y
 
 
-def multiply_by_A(v: np.ndarray[float], problem: ProblemSettings) -> np.ndarray[float]:
+def multiply_by_A(
+        v: np.ndarray[float],
+        problem: ProblemSettings
+) -> np.ndarray[float]:
     """
     Compute A*v without setting up the matrix
 
@@ -141,8 +149,6 @@ def multiply_by_A(v: np.ndarray[float], problem: ProblemSettings) -> np.ndarray[
 
     result_x: np.ndarray[float] = np.zeros(shape=num_vertices, dtype=float)
     smoothness_weight = problem.smoothness_weight
-    result_x.fill(0)  # Set initial result to zero
-
 
 
     # FIT PENALTY
@@ -183,11 +189,11 @@ def multiply_by_A(v: np.ndarray[float], problem: ProblemSettings) -> np.ndarray[
     return result_x
 
 
-
 def cg_solve(
         problem: ProblemSettings,
         b: np.ndarray[float],
-) -> int:
+        x0: np.ndarray[float]  # intial guess
+) -> (np.ndarray[float], int):
     """
     interface for scipy cg solver
 
@@ -197,14 +203,14 @@ def cg_solve(
     # SET SCIPY CG SOLVER PARAMETERS
 
     shape_A = (
-        2 * problem.grid.resolution_x * problem.grid.resolution_y,
-        2 * problem.grid.resolution_x * problem.grid.resolution_y
+        problem.grid.resolution_x * problem.grid.resolution_y,
+        problem.grid.resolution_x * problem.grid.resolution_y
     )
     matvec_A = partial(multiply_by_A, problem=problem)  # pre-set 'problem' parameter
     linear_operator_A = LinearOperator(shape=shape_A, matvec=matvec_A, dtype=float)
 
     # CALL SCIPY CG SOLVER
 
-    x, exit_code = cg(linear_operator_A, b)
+    x, exit_code = cg(A=linear_operator_A, b=b, x0=x0)
 
-    return exit_code
+    return x, exit_code
