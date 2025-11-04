@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import numpy as np
 from typing import Optional
 
@@ -17,3 +19,18 @@ class VectorField2D:
             vector_field: Optional[np.ndarray[np.ndarray[float]]] = None
     ):
         self.vector_field = vector_field
+
+    def __getitem__(self, item):
+        return self.vector_field[item]
+
+    def copy(self) -> VectorField2D:
+        """
+        Returns a deep copy of this VectorField2D.
+        The underlying NumPy arrays are duplicated to avoid shared memory.
+        """
+        if self.vector_field is None:
+            return VectorField2D(None)
+
+        # Deep copy of the NumPy arrays
+        copied_field: np.ndarray[float] = np.array([np.copy(comp) for comp in self.vector_field], dtype=float)
+        return VectorField2D(copied_field)

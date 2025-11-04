@@ -53,7 +53,6 @@ class VFKM:
 
 
 def compute_error_implicit(
-        grid: Grid,
         x_component: np.ndarray[float],
         y_component: np.ndarray[float],
         total_curve_length: float,
@@ -375,3 +374,57 @@ def optimize_all_vector_fields(
             total_curve_length=total_curve_length,
             smoothness_weight=smoothness_weight
         )
+
+
+def get_total_error(
+        curves: list[CurveDescription],
+        vector_fields: list[VectorField2D],
+        map_curve_to_vector_field: list[int],
+        total_curve_length,
+        smoothness_weight,
+        grid
+):
+    """
+    Compute the overall energy being minimized.
+    It is the sum of per-curve data-fitting errors (computed with compute_error_implicit)
+    plus the smoothness penalty for each vector field
+    (scaled by the fraction of total curve length assigned to that field).
+    """
+
+    total_error: float = 0.0
+    number_of_curves: int = len(curves)
+    number_of_vector_fields: int = len(vector_fields)
+
+    lengths: list[float] = [0.0 for i in range(number_of_vector_fields)]
+
+    # FIT ERROR
+    for i in range(number_of_curves):
+        current_curve: CurveDescription = curves[i]
+        vector_field_index: int = map_curve_to_vector_field[i]
+        current_vector_field: VectorField2D = vector_fields[vector_field_index]
+
+        lengths[vector_field_index] += current_curve.length
+
+        error = compute_error_implicit(
+            x_component=current_vector_field[0],
+            y_component=current_vector_field[1],
+            total_curve_length=total_curve_length,
+            smoothness_weight=smoothness_weight,
+            curve=current_curve
+        )
+        total_error += error
+
+    # SMOOTHNESS ERROR
+    for i in range(number_of_vector_fields):
+        current_vector_field: VectorField2D = vector_fields[i]
+
+        vector_field_copy: VectorField2D = current_vector_field.copy()
+
+        grid.multiply_by_laplacian(vector_field=vector_field_copy)
+
+        weight_factor = smoothness_weight * (lengths[i] / total_curve_length)
+
+        total_error += np.linalg.norm(vector_field_copy[0]) * weight_factor
+        total_error += np.linalg.norm(vector_field_copy[1]) * weight_factor
+
+    return total_error

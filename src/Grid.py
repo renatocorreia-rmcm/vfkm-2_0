@@ -1,6 +1,7 @@
 from __future__ import annotations  # allow to reference Grid type inside the Grid implementation
 
 from Point2D import Point2D
+from VectorField2D import VectorField2D
 
 import numpy as np
 
@@ -258,11 +259,14 @@ class Grid:
         point_loc.barycentric_cords[1] = beta
         point_loc.barycentric_cords[2] = gamma
 
-    def multiply_by_laplacian(self, first_component: np.ndarray[float], second_component: np.ndarray[float]) -> None:
+    def multiply_by_laplacian(self, vector_field: VectorField2D) -> None:
         """
         multiply both vector field components by the laplacian
 
         """
+
+        first_component: np.ndarray[float] = vector_field[0]
+        second_component: np.ndarray[float] = vector_field[1]
 
         if (  # check dimensions
                 self.resolution_x * self.resolution_y != first_component.size or
