@@ -8,6 +8,7 @@ from scipy.sparse.linalg import LinearOperator  # class to incorporate original 
 from functools import partial
 
 from Grid import Grid, CurveDescription
+from src.VectorField2D import VectorField2D
 
 
 class ProblemSettings:
@@ -52,8 +53,8 @@ class VFKM:
 
 def compute_error_implicit(
         grid: Grid,
-        vf_x_component: np.ndarray[float],
-        vf_y_component: np.ndarray[float],
+        x_component: np.ndarray[float],
+        y_component: np.ndarray[float],
         total_curve_length: float,
         smoothness_weight: float,
         curve: CurveDescription
@@ -64,8 +65,8 @@ def compute_error_implicit(
     vy = np.zeros(2 * len(curve.segments), dtype=float)
 
     for i in range(len(curve.segments)):
-        curve.segments[i].add_cx(vx, vf_x_component)
-        curve.segments[i].add_cx(vy, vf_y_component)
+        curve.segments[i].add_cx(vx, x_component)
+        curve.segments[i].add_cx(vy, y_component)
 
     vx -= curve.rhsx
     vy -= curve.rhsy
@@ -84,8 +85,8 @@ def compute_error_implicit(
 def optimize_vector_field_with_weights(
         grid: Grid,
         initial_guess_x: np.ndarray[float], initial_guess_y: np.ndarray[float],
-        curve_indices: np.ndarray[int],
-        curve_descriptions: np.ndarray[CurveDescription],
+        curve_indices: list[int],
+        curve_descriptions: list[CurveDescription],
         total_curve_length: float,
         smoothness_weight: float
 ) -> None:
@@ -153,7 +154,6 @@ def multiply_by_A(
 
     # FIT PENALTY
 
-
     curve_indices = problem.curve_indices
     curve_descriptions = problem.curve_descriptions
 
@@ -166,7 +166,6 @@ def multiply_by_A(
 
         # Add FIT contribution of this curve to result
         curve.add_cTcx(result_x, v, k_fit)
-
 
 
     # SMOOTH PENALTY
@@ -183,7 +182,6 @@ def multiply_by_A(
 
     # Add SMOOTH contribution of this curve to result
     result_x += Ax
-
 
 
     return result_x
@@ -214,3 +212,87 @@ def cg_solve(
     x, exit_code = cg(A=linear_operator_A, b=b, x0=x0)
 
     return x, exit_code
+
+
+def compute_first_assignment(
+    grid: Grid,
+    number_of_vector_fields: int,
+    curves: list[CurveDescription],
+    total_curve_length: float,
+    smoothness_weight: float
+) -> tuple[list[int], list[list[int]]]:  # mapCurveToVectorField, mapVectorFieldTo Curves
+    """
+    Generate an initial clustering of curves into vector fields.
+    Strategy:
+        - For each vector field, pick the currently worst-fitted curve,
+        - Optimize a vector field for that single-curve seed,
+        - Then assign every curve to its best candidate among the generated vector fields.
+    Returns:
+        (mapCurveToVectorField, mapVectorFieldCurves)
+    """
+
+    # Initialize per-curve errors to a large value
+    errors: list[float] = [1e10] * len(curves)
+
+    # Each vector field is a pair (xComponent, yComponent)
+    vector_fields: np.ndarray[VectorField2D] = np.empty(number_of_vector_fields, dtype=VectorField2D)
+
+    for i in range(number_of_vector_fields):
+        curve_indices: list[int] = []
+
+        # Seed each vector field with the currently worst-fitting curve
+
+        worst_index: int = int(np.argmax(errors))
+        curve_indices.append(worst_index)
+
+        # Initialize the vector field components
+        num_vertices: int = grid.get_resolution_x()*grid.get_resolution_y()
+        x_component: np.ndarray[float] = np.zeros(shape=num_vertices, dtype=float)
+        y_component: np.ndarray[float] = np.zeros(shape=num_vertices, dtype=float)
+
+        # Optimize the vector field
+        optimize_vector_field_with_weights(
+            grid=grid,
+            initial_guess_x=x_component, initial_guess_y=y_component,
+            curve_indices=curve_indices,
+            curve_descriptions=curves,
+            total_curve_length=total_curve_length,
+            smoothness_weight=smoothness_weight
+        )
+
+        # Store optimized components
+        vector_fields[i] = (x_component, y_component)
+
+        # Update per-curve error estimates
+        for j, curve in enumerate(curves):
+            new_error = compute_error_implicit(
+                grid=grid,
+                x_component=x_component, y_component=y_component,
+                total_curve_length=total_curve_length,
+                smoothness_weight=smoothness_weight,
+                curve=curve
+            )
+            errors[j] = min(errors[j], new_error)
+
+    # Assign each curve to the best vector field
+    result: list[int] = []
+    result_indices: list[list[int]] = [[] for i in range(number_of_vector_fields)]
+
+    for i, curve in enumerate(curves):
+
+        curve_errors = [
+            compute_error_implicit(
+                grid=grid,
+                x_component=vf[0], y_component=vf[1],
+                total_curve_length=total_curve_length,
+                smoothness_weight=smoothness_weight,
+                curve=curve
+            )
+            for vf in vector_fields
+        ]
+
+        best_index: int = int(np.argmin(curve_errors))
+        result_indices[best_index].append(i)
+        result.append(best_index)
+
+    return result, result_indices
