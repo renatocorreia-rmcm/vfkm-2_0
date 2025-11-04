@@ -8,6 +8,7 @@ from scipy.sparse.linalg import LinearOperator  # class to incorporate original 
 from functools import partial
 
 from Grid import Grid, CurveDescription
+from src.PolygonalPath2D import PolygonalPath2D
 from src.VectorField2D import VectorField2D
 
 
@@ -84,7 +85,7 @@ def compute_error_implicit(
 
 def optimize_vector_field_with_weights(
         grid: Grid,
-        initial_guess_x: np.ndarray[float], initial_guess_y: np.ndarray[float],
+        initial_guess_x: np.ndarray[float], initial_guess_y: np.ndarray[float],  # todo: pass vf2d object instead
         curve_indices: list[int],
         curve_descriptions: list[CurveDescription],
         total_curve_length: float,
@@ -296,3 +297,81 @@ def compute_first_assignment(
         result.append(best_index)
 
     return result, result_indices
+
+
+def set_constraints(
+        curve_descriptions: list[CurveDescription],
+        total_curve_length_ref: list[float],
+        polygonal_paths: list[PolygonalPath2D],
+        grid: Grid
+):
+    """
+    Prepare per-curve CurveDescription objects from raw PolygonalPath inputs.
+    Also accumulates the total length used for normalization in optimization weightings.
+
+    Parameters:
+        curve_descriptions (list): list to store validated and tessellated paths (processed curves)
+        total_curve_length_ref (list[float]): single-element list acting as a reference to store total length
+        polygonal_paths (list[PolygonalPath]): raw curve paths
+        grid (Grid): grid object with clipLine() and curve_description() methods
+    """
+
+    total_curve_length_ref[0] = 0.0  # todo: solve reference for float type
+    number_of_curves = len(polygonal_paths)
+
+    for i in range(number_of_curves):
+        pp:PolygonalPath2D = polygonal_paths[i]
+
+        # Validate that input times are non-decreasing.
+        for j in range(pp.number_of_points() - 1):
+            if pp.get_point(j + 1).time < pp.get_point(j).time:
+                print("Line is broken, has backward time.", flush=True)
+
+        bad_break = False
+
+        # Clip / tessellate the path to the grid
+        grid.clip_line(pp)
+
+        # Verify tessellation didn't introduce non-monotonic times.
+        for j in range(pp.number_of_points() - 1):
+            if pp.get_point(j + 1).time < pp.get_point(j).time:
+                print(f"{i} - Line clipper is broken, introduced backward time: "
+                      f"{pp.get_point(j + 1).time} {pp.get_point(j).time}", flush=True)
+                bad_break = True
+                exit(1) # todo: solve appending null curve
+                break
+
+
+        curve: CurveDescription = CurveDescription(path=pp, grid=grid)
+        total_curve_length_ref[0] += curve.length
+
+        curve_descriptions.append(curve)
+
+
+def optimize_all_vector_fields(
+    vector_fields: list[VectorField2D],
+    grid: Grid,
+    map_vector_field_curves: list[list[int]],
+    curves: list[CurveDescription],
+    total_curve_length: float,
+    smoothness_weight: float
+):
+    """
+    Optimize each vector field independently using its assigned curves.
+    Equivalent to the M-step in an EM/clustering process: given assignments
+    (map_vector_field_curves), optimize the vector field parameters to minimize error.
+    """
+    for j in range(len(vector_fields)):
+        current_vector_field = vector_fields[j]
+        curve_indices = map_vector_field_curves[j]
+
+        x_component, y_component = current_vector_field
+
+        # Solve for the best vector field given assigned curves
+        optimize_vector_field_with_weights(
+            grid=grid,
+            initial_guess_x=x_component, initial_guess_y=y_component,
+            curve_indices=curve_indices, curve_descriptions=curves,
+            total_curve_length=total_curve_length,
+            smoothness_weight=smoothness_weight
+        )
