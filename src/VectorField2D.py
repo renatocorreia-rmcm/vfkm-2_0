@@ -12,11 +12,11 @@ class VectorField2D:
 
 	"""
 
-    vector_field: Optional[np.ndarray[np.ndarray[float]]]  # a np array for each axis  # calculated during optimization step
+    vector_field: list[np.ndarray[float]]  # a np array for each axis  # calculated during optimization step
 
     def __init__(
             self,
-            vector_field: Optional[np.ndarray[np.ndarray[float]]] = None
+            vector_field: list[np.ndarray[float]]
     ):
         self.vector_field = vector_field
 
@@ -28,9 +28,7 @@ class VectorField2D:
         Returns a deep copy of this VectorField2D.
         The underlying NumPy arrays are duplicated to avoid shared memory.
         """
-        if self.vector_field is None:
-            return VectorField2D(None)
 
         # Deep copy of the NumPy arrays
-        copied_field: np.ndarray[float] = np.array([np.copy(comp) for comp in self.vector_field], dtype=float)
+        copied_field: list[np.ndarray[float]] = [np.copy(comp) for comp in self.vector_field]
         return VectorField2D(copied_field)

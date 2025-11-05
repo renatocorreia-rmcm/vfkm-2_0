@@ -7,11 +7,12 @@ from VectorField2D import VectorField2D
 
 class Cluster:
     """
-    represents a set of trajectories(indices) + a vector field
+    represents a set of trajectories + a vector field
 
     """
 
     name: str  # f"{name of parent}:{amount of curves in this cluster}"
+
     # HIERARCHY
     parent: Optional[Cluster]
     children: list[Cluster]
@@ -20,7 +21,7 @@ class Cluster:
     vector_field: Optional[VectorField2D]
 
     # CURVES
-    curves_indices: list[int]  # indices of curves bellonging to this cluster
+    curves_indices: list[int]  # indices of curves belonging to this cluster
 
     # ERRORS
     curve_errors: list[float]  # for each indice in self.curves_indices
