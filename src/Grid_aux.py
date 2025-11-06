@@ -5,8 +5,6 @@ from typing import Optional
 import numpy as np
 
 
-
-
 """  DATA CLASSES
 
 (store its data directly, without computing anything)

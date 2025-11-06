@@ -103,6 +103,7 @@ class CurveDescription:
     GRID
 """
 
+
 class Grid:
     #  number of vertices along the axis
     resolution_x: int

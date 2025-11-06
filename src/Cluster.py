@@ -18,7 +18,7 @@ class Cluster:
     children: list[Cluster]
 
     # VECTOR FIELD
-    vector_field: Optional[VectorField2D]
+    vector_field: VectorField2D
 
     # CURVES
     curves_indices: list[int]  # indices of curves belonging to this cluster
@@ -28,13 +28,11 @@ class Cluster:
     error: float  # total error of cluster
     max_error: float = 0.0  # among all curves in this cluster.
 
-
-
     def __init__(
             self,
+            vector_field: VectorField2D,
             name: str = "",
-            parent: Optional[Cluster] = None,
-            vector_field: VectorField2D = None
+            parent: Optional[Cluster] = None
     ):
         """
         :param name: f"{name of parent}:{amount of curves in this cluster}"

@@ -30,5 +30,5 @@ class VectorField2D:
         """
 
         # Deep copy of the NumPy arrays
-        copied_field: list[np.ndarray[float]] = [np.copy(comp) for comp in self.vector_field]
+        copied_field: list[np.ndarray[float]] = [np.copy(component) for component in self.vector_field]
         return VectorField2D(copied_field)

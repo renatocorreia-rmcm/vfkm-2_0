@@ -1,5 +1,8 @@
 """"""
 
+# todo: use cluster object
+
+
 import numpy as np
 
 from scipy.sparse.linalg import cg  # conjugate gradient solver
@@ -42,7 +45,7 @@ class VFKM:
 
     @staticmethod
     def multiply_by_A(
-            v: np.ndarray[float],
+            vec: np.ndarray[float],
             problem: ProblemSettings
     ) -> np.ndarray[float]:
         """
@@ -73,11 +76,11 @@ class VFKM:
             curve = curve_descriptions[i]  # Load the curve
 
             # Add FIT contribution of this curve to result
-            curve.add_cTcx(result_x, v, k_fit)
+            curve.add_cTcx(result_x, vec, k_fit)
 
         # SMOOTH PENALTY
 
-        Ax = v.copy()  # Ax = v (initial copy of v)
+        Ax = vec.copy()  # Ax = v (initial copy of v)
 
         # DISCRETIZED LAPLACIAN
         grid.multiply_by_laplacian2(Ax)  # Ax = L*x
@@ -93,13 +96,15 @@ class VFKM:
         return result_x
 
     @staticmethod
-    def optimize_implicit_fast_with_weights(
+    def optimize_implicit_fast_with_weights(  # todo: pass list of cluster
             grid: Grid,
             number_of_vector_fields: int,
             paths: list[PolygonalPath2D],
+
             final_vector_fields: list[VectorField2D],
             map_curve_to_vector_field: list[int],
             map_curve_to_error: list[float],
+
             smoothness_weight: float
     ):
         """
@@ -179,10 +184,12 @@ class VFKM:
 
 
 def compute_error_implicit(
+
         vector_field: VectorField2D,
+        curve: CurveDescription,
+
         total_curve_length: float,
-        smoothness_weight: float,
-        curve: CurveDescription
+        smoothness_weight: float
 ) -> float:
 
     x_component: np.ndarray[float] = vector_field[0]
@@ -212,11 +219,13 @@ def compute_error_implicit(
     return error * (1.0 - smoothness_weight) / total_curve_length
 
 
-def optimize_vector_field_with_weights(
+def optimize_vector_field_with_weights(  # todo: pass cluster object - may be a method of cluster class
         grid: Grid,
+
         initial_guess_x: np.ndarray[float], initial_guess_y: np.ndarray[float],  # todo: pass vf2d object instead
         curve_indices: list[int],
         curve_descriptions: list[CurveDescription],
+
         total_curve_length: float,
         smoothness_weight: float
 ) -> None:
@@ -421,7 +430,7 @@ def set_constraints(
     return curve_descriptions, total_curve_length
 
 
-def optimize_all_vector_fields(
+def optimize_all_vector_fields(  # todo: change to optmize clusters. maybe make a cluster method
     vector_fields: list[VectorField2D],
     grid: Grid,
     map_vector_field_curves: list[list[int]],
@@ -450,7 +459,7 @@ def optimize_all_vector_fields(
         )
 
 
-def get_total_error(
+def get_total_error(  # todo: pass list of clusters
         curves: list[CurveDescription],
         vector_fields: list[VectorField2D],
         map_curve_to_vector_field: list[int],
@@ -503,7 +512,7 @@ def get_total_error(
     return total_error
 
 
-def optimize_assignments(  # ASSIGN STEP
+def optimize_assignments(  # ASSIGN STEP  # todo: use cluster object (create in here ?)
     total_change: list[int],
     total_error: list[float],
     map_curve_to_vector_field: list[int],
@@ -577,7 +586,7 @@ def optimize_assignments(  # ASSIGN STEP
 
 
 
-def repopulate_empty_cluster(
+def repopulate_empty_cluster(  # todo: pass list of clusters
         map_vector_field_curves: list[list[int]],
         map_curve_to_vector_field: list[int],
         vector_fields: list[VectorField2D]
@@ -621,8 +630,3 @@ def repopulate_empty_cluster(
 
             map_vector_field_curves[i] = n1
             map_vector_field_curves[max_index] = n2
-
-
-# todo: use cluster object
-
-
