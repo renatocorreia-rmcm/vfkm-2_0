@@ -3,7 +3,8 @@ from __future__ import annotations
 from typing import Optional
 
 from VectorField2D import VectorField2D
-
+from src.Grid import CurveDescription
+from VFKM import compute_error_implicit
 
 class Cluster:
     """
@@ -22,10 +23,11 @@ class Cluster:
 
     # CURVES
     curves_indices: list[int]  # indices of curves belonging to this cluster
+    curves: list[CurveDescription]
 
     # ERRORS
     curve_errors: list[float]  # for each indice in self.curves_indices
-    error: float  # total error of cluster
+    total_error: float  # total error of cluster
     max_error: float = 0.0  # among all curves in this cluster.
 
     def __init__(
@@ -43,16 +45,16 @@ class Cluster:
 
         self.name = name  # in 1.0, it is computed outside initializer call (and passed as arg). Could this be done by the own Cluster.__init__ ?
 
-        self.parent: Optional[Cluster] = parent
-        self.children: list[Cluster] = []
+        self.parent = parent
+        self.children = []
 
-        self.vector_field: Optional[VectorField2D] = vector_field
+        self.vector_field = vector_field
 
-        self.curves_indices: list[int] = []
+        self.curves_indices = []
 
-        self.curve_errors: list[float] = []
-        self.error: float = 0.0
-        self.max_error: float = 0.0
+        self.curve_errors = []
+        self.total_error = 0.0
+        self.max_error = 0.0
 
 
     def clear_children(self) -> None:

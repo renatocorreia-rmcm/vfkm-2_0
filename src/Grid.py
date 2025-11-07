@@ -11,7 +11,7 @@ from PolygonalPath2D import PolygonalPath2D  # for Grid.clip_line()
 
 
 
-class CurveDescription:
+class CurveDescription:  # todo: make it contain its index. Avoid pass array of Curve descriptions and Curve indices
     """
     Array of Segments
 
