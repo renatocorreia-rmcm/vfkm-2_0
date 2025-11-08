@@ -16,9 +16,9 @@ class VectorField2D:
 
     def __init__(
             self,
-            vector_field: list[np.ndarray[float]]
+            components: list[np.ndarray[float]]
     ):
-        self.vector_field = vector_field
+        self.vector_field = components
 
     def __getitem__(self, item):
         return self.vector_field[item]

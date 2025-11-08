@@ -63,3 +63,13 @@ class Cluster:
     def add_child(self, child_cluster: Cluster) -> None:
         self.children.append(child_cluster)
         child_cluster.parent = self
+
+    def clear_curves(self):
+        """
+        used in assign step
+        """
+        self.curves_indices.clear()
+        self.curves.clear()
+        self.curve_errors.clear()
+        self.total_error = 0
+        self.max_error = 0
