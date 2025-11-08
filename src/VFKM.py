@@ -143,7 +143,7 @@ class VFKM:
 
 			print(f"Before optimization: {total_error}")
 
-			optimize_all_vector_fields(
+			optimize_all_clusters_vector_fields(
 				vector_fields, grid, map_vector_field_curves,
 				curve_descriptions, total_curve_length, smoothness_weight
 			)
@@ -154,7 +154,7 @@ class VFKM:
 			)
 			print(f"After optimization: {total_error}")
 
-			optimize_assignments(
+			optimize_all_clusters_assignments(
 				total_change, [total_error],
 				map_curve_to_vector_field, map_vector_field_curves,
 				map_curve_to_error, vector_fields,
@@ -215,55 +215,6 @@ def compute_error_implicit(
 	assert error >= 0.0
 
 	return error * (1.0 - smoothness_weight) / total_curve_length
-
-
-def optimize_vector_field_with_weights(  # todo: may be a method of cluster class
-		grid: Grid,
-		cluster: Cluster,
-		total_curve_length: float,
-		smoothness_weight: float
-) -> None:
-	"""
-    optimize a single vector field (using smoothness)
-
-    Given an initial guess for the vector field components,
-    construct the RHS from curve constraints
-    and solve two independent linear systems (one per component) using CG.
-
-    The solution overwrites the provided initialGuessX/Y vectors.
-    """
-
-	initial_guess_x: np.ndarray[float] = cluster.vector_field[0]
-	initial_guess_y: np.ndarray[float] = cluster.vector_field[1]
-
-	number_of_vertices = grid.get_resolution_x() * grid.get_resolution_y()
-
-	# independent terms //  rhs terms //  b_x, b_y
-	indepx = np.zeros(number_of_vertices, dtype=float)
-	indepy = np.zeros(number_of_vertices, dtype=float)
-	# load values into independent terms
-	for curve in cluster.curves:  # for each curve
-
-		for j in range(len(curve.segments)):  # for each segment in curve
-			# Sum contributions into the RHS vectors.
-			k_factor = (1.0 - smoothness_weight) * (curve.segments[j].timestamps[1] - curve.segments[j].timestamps[
-				0]) / total_curve_length  # weighting factor  # Each segment's influence is weighted by the [ (1 - smoothness_weight) data-term factor ] and [ its relative curve length ].
-			curve.segments[j].add_cTx(indepx, curve.rhsx, k_factor)
-			curve.segments[j].add_cTx(indepy, curve.rhsy, k_factor)
-
-	problem = ProblemSettings(grid, cluster.curves_indices, cluster.curves, total_curve_length, smoothness_weight)
-
-	# initial guesses: previous vector fields
-	x0 = initial_guess_x.copy()
-	y0 = initial_guess_y.copy()
-
-	# solve linear system using Conjugate Gradient (cg_solve)
-	x, x_exit_code = cg_solve(problem, indepx, x0)
-	y, y_exit_code = cg_solve(problem, indepy, y0)
-
-	# update previous vector vield values
-	initial_guess_x[:] = x
-	initial_guess_y[:] = y
 
 
 def cg_solve(
@@ -336,9 +287,8 @@ def compute_first_assignment(
 		cluster.curves = curves
 
 		# Optimize the vector field
-		optimize_vector_field_with_weights(
+		cluster.optimize_vector_field(
 			grid=grid,
-			cluster=cluster,
 			total_curve_length=total_curve_length,
 			smoothness_weight=smoothness_weight
 		)
@@ -407,8 +357,6 @@ def set_constraints(
 			if pp.get_point(j + 1).time < pp.get_point(j).time:
 				print("Line is broken, has backward time.", flush=True)
 
-		bad_break = False
-
 		# Clip / tessellate the path to the grid
 		grid.clip_line(pp)
 
@@ -417,8 +365,7 @@ def set_constraints(
 			if pp.get_point(j + 1).time < pp.get_point(j).time:
 				print(f"{i} - Line clipper is broken, introduced backward time: "
 					  f"{pp.get_point(j + 1).time} {pp.get_point(j).time}", flush=True)
-				bad_break = True
-				exit(1)  # todo: solve appending null curve
+				exit(1)  # todo: solve appending null curve + flagging bad break
 
 		curve: CurveDescription = CurveDescription(path=pp, grid=grid)
 		total_curve_length += curve.length
@@ -428,22 +375,20 @@ def set_constraints(
 	return curve_descriptions, total_curve_length
 
 
-def optimize_all_vector_fields(  # todo: change to optmize clusters. maybe make a cluster method
+def optimize_all_clusters_vector_fields(
 		grid: Grid,
 		clusters: list[Cluster],
 		total_curve_length: float,
 		smoothness_weight: float
 ):
 	"""
-    Optimize each vector field independently using its assigned curves.
+    Optimize each cluster vector field independently using its assigned curves.
     Equivalent to the M-step in an EM/clustering process: given assignments
-    (map_vector_field_curves), optimize the vector field parameters to minimize error.
+    , optimize the vector field parameters to minimize error.
     """
 	for cluster in clusters:
-		# Solve for the best vector field given assigned curves
-		optimize_vector_field_with_weights(
+		cluster.optimize_vector_field(
 			grid=grid,
-			cluster=cluster,
 			total_curve_length=total_curve_length,
 			smoothness_weight=smoothness_weight
 		)
@@ -488,7 +433,7 @@ def get_total_error(
 	return total_error
 
 
-def optimize_assignments(  # ASSIGN STEP
+def optimize_all_clusters_assignments(  # ASSIGN STEP
 		total_change: list[int],
 		total_error: list[float],
 

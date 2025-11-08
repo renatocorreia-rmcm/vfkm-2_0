@@ -3,14 +3,17 @@ from __future__ import annotations
 from typing import Optional
 
 from VectorField2D import VectorField2D
-from src.Grid import CurveDescription
-from VFKM import compute_error_implicit
+from src.Grid import CurveDescription, Grid
+import numpy as np
+
+from src.VFKM import ProblemSettings, cg_solve
+
 
 class Cluster:
     """
-    represents a set of trajectories + a vector field
+	represents a set of trajectories + a vector field
 
-    """
+	"""
 
     name: str  # f"{name of parent}:{amount of curves in this cluster}"
 
@@ -37,11 +40,11 @@ class Cluster:
             parent: Optional[Cluster] = None
     ):
         """
-        :param name: f"{name of parent}:{amount of curves in this cluster}"
-        :param parent:
-        :param vector_field: The parent cluster of this cluster. Defaults to None for the root cluster
+		:param name: f"{name of parent}:{amount of curves in this cluster}"
+		:param parent:
+		:param vector_field: The parent cluster of this cluster. Defaults to None for the root cluster
 
-        """
+		"""
 
         self.name = name  # in 1.0, it is computed outside initializer call (and passed as arg). Could this be done by the own Cluster.__init__ ?
 
@@ -56,7 +59,6 @@ class Cluster:
         self.total_error = 0.0
         self.max_error = 0.0
 
-
     def clear_children(self) -> None:
         self.children.clear()
 
@@ -66,10 +68,53 @@ class Cluster:
 
     def clear_curves(self):
         """
-        used in assign step
-        """
+		used in assign step
+		"""
         self.curves_indices.clear()
         self.curves.clear()
         self.curve_errors.clear()
         self.total_error = 0
         self.max_error = 0
+
+    def optimize_vector_field(
+            self,
+            grid: Grid,
+            smoothness_weight: float,
+            total_curve_length: float
+    ):
+        """
+		optimize this cluster vector field (using smoothness)
+
+		Construct the RHS from curve constraints
+		and solve two independent linear systems (one per component) using CG.
+		"""
+
+        number_of_vertices: int = grid.get_resolution_x() * grid.get_resolution_y()
+
+        # independent terms //  rhs terms //  b_x, b_y
+        indepx = np.zeros(number_of_vertices, dtype=float)
+        indepy = np.zeros(number_of_vertices, dtype=float)
+
+        # load values into independent terms
+        for curve in self.curves:  # for each curve
+            for j in range(len(curve.segments)):  # for each segment in curve
+                k_factor: float = (1.0 - smoothness_weight) * (
+                        curve.segments[j].timestamps[1] - curve.segments[j].timestamps[
+                    0]) / total_curve_length  # weighting factor  # Each segment's influence is weighted by the [ (1 - smoothness_weight) data-term factor ] and [ its relative curve length ].
+                # Sum contributions into the RHS vectors.
+                curve.segments[j].add_cTx(indepx, curve.rhsx, k_factor)
+                curve.segments[j].add_cTx(indepy, curve.rhsy, k_factor)
+
+        problem = ProblemSettings(grid, self.curves_indices, self.curves, total_curve_length, smoothness_weight)
+
+        # initial guesses: previous vector fields
+        x0 = self.vector_field[0].copy()
+        y0 = self.vector_field[1].copy()
+
+        # solve linear system using Conjugate Gradient (cg_solve)
+        x, x_exit_code = cg_solve(problem, indepx, x0)
+        y, y_exit_code = cg_solve(problem, indepy, y0)
+
+        # update previous vector vield values
+        self.vector_field[0][:] = x
+        self.vector_field[1][:] = y

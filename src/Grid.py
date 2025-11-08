@@ -9,13 +9,11 @@ from Grid_aux import TriangularFace, PointLocation, Segment
 from PolygonalPath2D import PolygonalPath2D  # for Grid.clip_line()
 
 
-
-
-class CurveDescription:  # todo: make it contain its index. Avoid pass array of Curve descriptions and Curve indices
+class CurveDescription:  # todo: it contain its index. No need to array of curve indices in functions arguments
     """
-    Array of Segments
+	Array of Segments
 
-    """
+	"""
 
     segments: list[Segment]
     index: int
@@ -26,28 +24,25 @@ class CurveDescription:  # todo: make it contain its index. Avoid pass array of 
 
     def __init__(self, path: PolygonalPath2D, grid: Grid):
         """
-        Create a CurveDescription object (array of segments)  # notice how a segment is relative to its grid
-        from a PolygonalPath one (sequence of timestamped 2D points)
-        with respect to the given grid object parameters
+		Create a CurveDescription object (array of segments)  # notice how a segment is relative to its grid
+		from a PolygonalPath one (sequence of timestamped 2D points)
+		with respect to the given grid object parameters
 
-        """
+		"""
 
         self.segments = []
         self.length = 0
-        self.rhsx = np.array([])  # Initialize as empty
-        self.rhsy = np.array([])
+        self.rhsx = np.array([], dtype=float)  # Initialize as empty
+        self.rhsy = np.array([], dtype=float)
 
         number_of_points: int = path.number_of_points()
         if number_of_points < 2:
             return
 
-
         self.rhsx = np.zeros(2 * (number_of_points - 1))
         self.rhsy = np.zeros(2 * (number_of_points - 1))
 
-
-        for i in range(number_of_points-1):
-
+        for i in range(number_of_points - 1):
             current_point: np.ndarray[float] = grid.to_grid(path.get_point(i).space)
             next_point: np.ndarray[float] = grid.to_grid(path.get_point(i + 1).space)
             mid_point: np.ndarray[float] = (current_point + next_point) * 0.5
@@ -61,7 +56,6 @@ class CurveDescription:  # todo: make it contain its index. Avoid pass array of 
             location.barycentric_cords[2] = -1
 
             location.face = grid.get_face_where_point_lies(mid_point)
-
 
             segment: Segment = Segment()
 
@@ -86,17 +80,20 @@ class CurveDescription:  # todo: make it contain its index. Avoid pass array of 
 
     def add_cTcx(self, result_x: np.ndarray[float], x: np.ndarray[float], k_global: float = 1):
         """
-        chains Segment.add_cx and Segment.add_cTx for each segment in this curve
-        """
+		chains Segment.add_cx and Segment.add_cTx for each segment in this curve
+		"""
 
-        v: np.ndarray[float] = np.zeros(2 * len(self.segments))  # the "summand" parameter for add_cx and add_cTx methods
+        v: np.ndarray[float] = np.zeros(
+            2 * len(self.segments))  # the "summand" parameter for add_cx and add_cTx methods
 
         for segment in self.segments:  # for each segment in curve
 
-            k = k_global * (segment.timestamps[1] - segment.timestamps[0])  # segment-specific weight  # the time interval (duration) of the segment scaled by a global constant.
+            k = k_global * (segment.timestamps[1] - segment.timestamps[
+                0])  # segment-specific weight  # the time interval (duration) of the segment scaled by a global constant.
 
             segment.add_cx(v, x)  # calculate C*x for this segment and store it in 'v'.
-            segment.add_cTx(result_x, v, k)  # calculate C^T * (the result from step 1) and add it to the final result vector
+            segment.add_cTx(result_x, v,
+                            k)  # calculate C^T * (the result from step 1) and add it to the final result vector
 
 
 """
@@ -137,16 +134,16 @@ class Grid:
 
     def get_vertex_index(self, x: int, y: int) -> int:
         """
-            get linear index based on (x, y) coordinate
-        """
+			get linear index based on (x, y) coordinate
+		"""
         return y * self.resolution_x + x
 
     def get_face_where_point_lies(self, v: np.ndarray[float]) -> TriangularFace:
         """
-            REQUIRES POINT IN GRID COORDINATE SYSTEM
+			REQUIRES POINT IN GRID COORDINATE SYSTEM
 
-            create and return a new `face` object with the respective properties
-        """
+			create and return a new `face` object with the respective properties
+		"""
         if (  # coordinates out of range
                 (v[0] < 0 or v[0] > (self.resolution_x - 1.0))
                 or
@@ -189,8 +186,8 @@ class Grid:
     # coordinate converters
     def to_grid(self, world_point: np.ndarray[float]) -> np.ndarray[float]:
         """
-        convert geographic ("world") coordinates into grid coordinates
-        """
+		convert geographic ("world") coordinates into grid coordinates
+		"""
         return np.array([
             (world_point[0] - self.x) / self.w * (self.resolution_x - 1.0),
             (world_point[1] - self.y) / self.h * (self.resolution_y - 1.0)
@@ -198,9 +195,9 @@ class Grid:
 
     def to_world(self, grid_point: np.ndarray[float]) -> np.ndarray[float]:
         """
-        convert grid coordinates into geographic ("world") coordinates
+		convert grid coordinates into geographic ("world") coordinates
 
-        """
+		"""
         return np.array([
             grid_point[0] / (self.resolution_x - 1.0) * self.w + self.x,
             grid_point[1] / (self.resolution_y - 1.0) * self.h + self.y
@@ -208,8 +205,8 @@ class Grid:
 
     def get_grid_vertex(self, index: int) -> np.ndarray[int]:
         """
-        take linear index, return correspondent (x, y) coordinates
-        """
+		take linear index, return correspondent (x, y) coordinates
+		"""
         return np.array([
             index % self.resolution_x,
             index // self.resolution_x
@@ -217,10 +214,10 @@ class Grid:
 
     def locate_point(self, point_loc: PointLocation, point: np.ndarray[float]) -> None:
         """
-        Calculates the barycentric coordinates of a point within a triangular face.
+		Calculates the barycentric coordinates of a point within a triangular face.
 
-        If face is fixed, set only barycentric coordinates within face.
-        """
+		If face is fixed, set only barycentric coordinates within face.
+		"""
         # todo: chatgpt says this calculation is wrong. Investigate.
 
         # Retrieve the three vertices of the triangular face
@@ -262,9 +259,9 @@ class Grid:
 
     def multiply_by_laplacian(self, vector_field: VectorField2D) -> None:
         """
-        multiply both vector field components by the laplacian
+		multiply both vector field components by the laplacian
 
-        """
+		"""
 
         first_component: np.ndarray[float] = vector_field[0]
         second_component: np.ndarray[float] = vector_field[1]
@@ -374,9 +371,9 @@ class Grid:
 
     def multiply_by_laplacian2(self, first_component: np.ndarray[float]) -> None:
         """
-        multiply only one vector field component by the laplacian
+		multiply only one vector field component by the laplacian
 
-        """
+		"""
 
         if self.resolution_x * self.resolution_y != first_component.size:
             print("Error while multiplying grid by vector. Incompatible dimensions.")
@@ -468,12 +465,11 @@ class Grid:
         # update original field in place
         first_component[:] = new_first_component
 
-
     class Inter:
         """
-        Intersection point.
+		Intersection point.
 
-        """
+		"""
 
         grid_point: np.ndarray[float]  # grid coordinate (world coordinate normalized to grid)
         u: float  # barycentric coordinate along segment
@@ -486,9 +482,9 @@ class Grid:
 
     def clip_against_horizontal_lines(self, g1: Grid.Inter, g2: Grid.Inter) -> list[Grid.Inter]:
         """
-        Take endpoints of a segment and return a list of its intersections with horizontal grid lines.
-        (For each horizontal line between the endpoints, calculate intersection using linear interpolation.)
-        """
+		Take endpoints of a segment and return a list of its intersections with horizontal grid lines.
+		(For each horizontal line between the endpoints, calculate intersection using linear interpolation.)
+		"""
 
         result = []  # list of intersections
 
@@ -512,7 +508,6 @@ class Grid:
                 p: Grid.Inter = Grid.Inter()
 
                 p.grid_point = (1 - u) * g1.grid_point + u * g2.grid_point  # linear interpolation
-
 
                 p.grid_point[1] = next_y  # force exact integer coordinate
                 p.u = u
@@ -549,10 +544,10 @@ class Grid:
 
     def clip_against_vertical_lines(self, g1: Grid.Inter, g2: Grid.Inter) -> list[Grid.Inter]:
         """
-        Flip coordinates so vertical lines become horizontal,
-        solve the problem using clip_against_horizontal_lines,
-        then transform back.
-        """
+		Flip coordinates so vertical lines become horizontal,
+		solve the problem using clip_against_horizontal_lines,
+		then transform back.
+		"""
 
         # flip coordinates (x <-> y)
         flipped_g1 = Grid.Inter()
@@ -576,10 +571,10 @@ class Grid:
     @staticmethod
     def get_u_from_points(v1: np.ndarray[float], v2: np.ndarray[float], u: np.ndarray[float]) -> float:
         """
-        "inverse" of lerp:
-        takes endpoints and a midpoint,
-        return barycentric coordinate of midpoint
-        """
+		"inverse" of lerp:
+		takes endpoints and a midpoint,
+		return barycentric coordinate of midpoint
+		"""
 
         if v2[0] != v1[0]:
             return (u[0] - v1[0]) / (v2[0] - v1[0])
@@ -588,13 +583,13 @@ class Grid:
 
     def clip_line(self, path1: PolygonalPath2D):
         """
-        This performs tessellation of 'path1' by finding all intersection points.
+		This performs tessellation of 'path1' by finding all intersection points.
 
-        insert new vertices wherever the path intersects with a grid line
+		insert new vertices wherever the path intersects with a grid line
 
-        divide path1 into his segments
-        then clipAgainstHorizontalLines and clipAgainstVerticalLines do the actual tesselation
-        """
+		divide path1 into his segments
+		then clipAgainstHorizontalLines and clipAgainstVerticalLines do the actual tesselation
+		"""
 
         current_vertex_index = 0
 
@@ -682,7 +677,6 @@ class Grid:
 
             # --- Insert intersection points into path ---
             for i in range(1, len(inters) - 1):
-
                 world_point = self.to_world(inters[i].grid_point)
                 time_value = inters[i].u * to_time + (1 - inters[i].u) * from_time
 
