@@ -8,13 +8,13 @@ Vector = np.ndarray[float]
 
 class PolygonalPath2D:
     """
-    Represents a trajectory as a sequence of time-stamped 2D points
+	Represents a trajectory as a sequence of time-stamped 2D points
 
-    """
+    Non tesselated
+	"""
 
     points: list[Point2D]
     tangents: list[Vector]
-
 
     def __init__(
             self,
@@ -22,12 +22,12 @@ class PolygonalPath2D:
             tangents: Optional[list[Vector]] = None
     ):
         """
-        Args:
-            points: A list of PointNDs
+		Args:
+			points: A list of PointNDs
 
-            tangents: An optional list of pre-calculated tangent vectors (NumPy arrays).
-            If None, they will be calculated automatically.
-        """
+			tangents: An optional list of pre-calculated tangent vectors (NumPy arrays).
+			If None, they will be calculated automatically.
+		"""
 
         if points is None:
             points = []
@@ -50,10 +50,10 @@ class PolygonalPath2D:
 
     def _calculate_tangents(self) -> list[Vector]:
         """
-        Calculates the tangent vector for each segment of the path.
-        (The velocity vector, encodes speed and direction)
+		Calculates the tangent vector for each segment of the path.
+		(The velocity vector, encodes speed and direction)
 
-        """
+		"""
 
         calculated_tangents = []
 

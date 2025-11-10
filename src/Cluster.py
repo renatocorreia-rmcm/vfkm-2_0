@@ -11,9 +11,9 @@ from src.VFKM import ProblemSettings, cg_solve
 
 class Cluster:
     """
-	represents a set of trajectories + a vector field
+    represents a set of trajectories + a vector field
 
-	"""
+    """
 
     name: str  # f"{name of parent}:{amount of curves in this cluster}"
 
@@ -40,11 +40,11 @@ class Cluster:
             parent: Optional[Cluster] = None
     ):
         """
-		:param name: f"{name of parent}:{amount of curves in this cluster}"
-		:param parent:
-		:param vector_field: The parent cluster of this cluster. Defaults to None for the root cluster
+        :param name: f"{name of parent}:{amount of curves in this cluster}"
+        :param parent:
+        :param vector_field: The parent cluster of this cluster. Defaults to None for the root cluster
 
-		"""
+        """
 
         self.name = name  # in 1.0, it is computed outside initializer call (and passed as arg). Could this be done by the own Cluster.__init__ ?
 
