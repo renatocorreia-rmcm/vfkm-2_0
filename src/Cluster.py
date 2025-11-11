@@ -1,12 +1,9 @@
 from __future__ import annotations
-
 from typing import Optional
 
 from VectorField2D import VectorField2D
 from src.Grid import CurveDescription, Grid
 import numpy as np
-
-from src.VFKM import ProblemSettings, cg_solve
 
 
 class Cluster:
@@ -54,6 +51,7 @@ class Cluster:
         self.vector_field = vector_field
 
         self.curves_indices = []
+        self.curves = []
 
         self.curve_errors = []
         self.total_error = 0.0
@@ -83,11 +81,11 @@ class Cluster:
             total_curve_length: float
     ):
         """
-		optimize this cluster vector field (using smoothness)
+        optimize this cluster vector field (using smoothness)
 
-		Construct the RHS from curve constraints
-		and solve two independent linear systems (one per component) using CG.
-		"""
+        Construct the RHS from curve constraints
+        and solve two independent linear systems (one per component) using CG.
+        """
 
         number_of_vertices: int = grid.get_resolution_x() * grid.get_resolution_y()
 
@@ -100,12 +98,15 @@ class Cluster:
             for j in range(len(curve.segments)):  # for each segment in curve
                 k_factor: float = (1.0 - smoothness_weight) * (
                         curve.segments[j].timestamps[1] - curve.segments[j].timestamps[
-                    0]) / total_curve_length  # weighting factor  # Each segment's influence is weighted by the [ (1 - smoothness_weight) data-term factor ] and [ its relative curve length ].
+                    0]) / total_curve_length  # weighting factor
                 # Sum contributions into the RHS vectors.
                 curve.segments[j].add_cTx(indepx, curve.rhsx, k_factor)
                 curve.segments[j].add_cTx(indepy, curve.rhsy, k_factor)
 
-        problem = ProblemSettings(grid, self.curves_indices, self.curves, total_curve_length, smoothness_weight)
+        # import here to avoid circular import at module load time
+        from src.VFKM import ProblemSettings, cg_solve
+
+        problem = ProblemSettings(grid, self.curves, total_curve_length, smoothness_weight)
 
         # initial guesses: previous vector fields
         x0 = self.vector_field[0].copy()
@@ -115,6 +116,6 @@ class Cluster:
         x, x_exit_code = cg_solve(problem, indepx, x0)
         y, y_exit_code = cg_solve(problem, indepy, y0)
 
-        # update previous vector vield values
+        # update previous vector field values
         self.vector_field[0][:] = x
         self.vector_field[1][:] = y

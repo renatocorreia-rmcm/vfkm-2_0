@@ -87,20 +87,13 @@ class VFKM:
         return result_x
 
     @staticmethod
-    def optimize_implicit_fast_with_weights(  # todo: pass list of cluster
+    def optimize_implicit_fast_with_weights(
             grid: Grid,
             paths: list[PolygonalPath2D],
-
-            clusters: list[Cluster],
-
             number_of_vector_fields: int,
-            final_vector_fields: list[VectorField2D],
-            map_curve_to_vector_field: list[int],
-            map_curve_to_error: list[float],
-
             smoothness_weight: float
-    ):
-        """  TOP LEVEL OPTIMIZATION (full proccess)
+    ) -> list[Cluster]:
+        """  TOP LEVEL OPTIMIZATION (full process)
 
         Performs a K-means-like alternating optimization for clustering curves
         into a fixed number of vector fields. Alternates between optimizing the
@@ -108,75 +101,73 @@ class VFKM:
         or reaching the iteration limit.
         """
 
-        # Initialization
+        # TESSELATION
         curve_descriptions: list[CurveDescription]
         total_curve_length: float
+        curve_descriptions, total_curve_length = set_constraints(paths, grid)
 
-        curve_descriptions, total_curve_length = set_constraints(paths, grid)  # tesselation
-
-        # Create vector fields
-        vector_fields: list[VectorField2D] = [
-            VectorField2D([
-                np.zeros(shape=grid.get_resolution_x() * grid.get_resolution_y()),
-                np.zeros(shape=grid.get_resolution_x() * grid.get_resolution_y())
-            ])
-            for _ in range(number_of_vector_fields)
-        ]
-
-        # First assignment
-        f_first: tuple[list[int], list[list[int]]] = compute_first_assignment(
-            grid, number_of_vector_fields, curve_descriptions, total_curve_length, smoothness_weight
+        # FIRST ASSIGNMENT
+        clusters: list[Cluster] = compute_first_assignment(
+            grid=grid,
+            number_of_vector_fields=number_of_vector_fields,
+            curves=curve_descriptions,
+            total_curve_length=total_curve_length,
+            smoothness_weight=smoothness_weight
         )
-        first_assignments, map_vector_field_curves = f_first
-
-        # Copy initial mapping
-        for i in range(len(first_assignments)):
-            map_curve_to_vector_field[i] = first_assignments[i]
 
         # --- Optimization Loop ---
-        number_of_iterations = 0
-        total_error = 1e20  # infinity
+        number_of_iterations: int = 100
+        total_error: float = float('inf')
 
-        while number_of_iterations < 100:
-            total_change = [0]
 
+        for i in range(number_of_iterations):
             print(f"Before optimization: {total_error}")
 
-            optimize_all_clusters_vector_fields(
-                vector_fields, grid, map_vector_field_curves,
-                curve_descriptions, total_curve_length, smoothness_weight
-            )
 
+            """
+                OPTMIZE
+            """
+            optimize_all_clusters_vector_fields(
+                grid=grid,
+                clusters=clusters,
+                total_curve_length=total_curve_length,
+                smoothness_weight=smoothness_weight
+            )
             total_error = get_total_error(
-                curve_descriptions, vector_fields, map_curve_to_vector_field,
-                total_curve_length, smoothness_weight, grid
+                grid=grid,
+                clusters=clusters,
+                total_curve_length=total_curve_length,
+                smoothness_weight=smoothness_weight
             )
             print(f"After optimization: {total_error}")
 
-            optimize_all_clusters_assignments(
-                total_change, [total_error],
-                map_curve_to_vector_field, map_vector_field_curves,
-                map_curve_to_error, vector_fields,
-                curve_descriptions, total_curve_length, smoothness_weight, grid
+
+            """
+                ASSIGN
+            """
+            total_error, total_change = optimize_all_clusters_assignments(  # this total_error consider only the FIT error
+                clusters=clusters,
+                total_curve_length=total_curve_length,
+                smoothness_weight=smoothness_weight
             )
 
-            total_error = get_total_error(
-                curve_descriptions, vector_fields, map_curve_to_vector_field,
-                total_curve_length, smoothness_weight, grid
+            total_error = get_total_error(  # this total_error consider both FIT and SMOOTH error
+                grid=grid,
+                clusters=clusters,
+                total_curve_length=total_curve_length,
+                smoothness_weight=smoothness_weight
             )
 
-            print(f"After assignment: {total_error} changes: {total_change[0]}")
+            print(f"After assignment: {total_error} changes: {total_change}")
 
-            repopulate_all_empty_cluster_by_random(map_vector_field_curves, map_curve_to_vector_field, vector_fields)
+            repopulate_all_empty_cluster_by_random(
+                clusters=clusters
+            )
 
-            number_of_iterations += 1
-            if total_change[0] == 0:  # convergence
+            if total_change == 0:  # convergence
                 break
 
-        # --- Finalize results ---
-        for i in range(number_of_vector_fields):
-            final_vector_fields[i][0].set_values(vector_fields[i][0])
-            final_vector_fields[i][1].set_values(vector_fields[i][1])
+        return clusters
 
 
 def compute_error_implicit(
@@ -243,7 +234,7 @@ def cg_solve(
     return x, exit_code
 
 
-def compute_first_assignment(  # todo: return clusters (w/ vectorfield = None)?
+def compute_first_assignment(
         grid: Grid,
 
         number_of_vector_fields: int,
@@ -251,22 +242,20 @@ def compute_first_assignment(  # todo: return clusters (w/ vectorfield = None)?
 
         total_curve_length: float,
         smoothness_weight: float
-) -> tuple[list[int], list[list[int]]]:  # mapCurveToVectorField, mapVectorFieldToCurves
-    """
-    Generate an initial clustering of curves WITHOUT VECTOR FIELDS
-    Strategy:
+) -> list[Cluster]:
+    """  # CREATE LIST OF CLUSTERS
+
+    Generate an initial clustering of curves
         - For each vector field, pick the currently worst-fitted curve,
         - Optimize a vector field for that single-curve seed,
         - Then assign every curve to its best candidate among the generated vector fields.
-    Returns:
-        (mapCurveToVectorField, mapVectorFieldCurves)
     """
 
-    # Initialize per-curve errors to a large value
-    errors: list[float] = [1e10] * len(curves)
+    # Initialize per-curve errors to infinite
+    errors: list[float] = [float('inf')] * len(curves)
 
     num_vertices: int = grid.get_resolution_x() * grid.get_resolution_y()
-    # create empty clusters list
+    # create the k clusters
     clusters: list[Cluster] = [
         Cluster(
             vector_field=VectorField2D([
@@ -276,25 +265,15 @@ def compute_first_assignment(  # todo: return clusters (w/ vectorfield = None)?
         ) for _ in range(number_of_vector_fields)
     ]
 
-    # todo: continue
 
-    for i in range(number_of_vector_fields):
-        curve_indices: list[int] = []
+    # --- FIT ---
+    for cluster in clusters:
 
         # Seed each vector field with the currently worst-fitting curve
         worst_index: int = int(np.argmax(errors))
-        curve_indices.append(worst_index)
 
-        # Initialize the vector field components
-        num_vertices: int = grid.get_resolution_x() * grid.get_resolution_y()
-        x_component: np.ndarray[float] = np.zeros(shape=num_vertices, dtype=float)
-        y_component: np.ndarray[float] = np.zeros(shape=num_vertices, dtype=float)
-
-        # create cluster object to pass to function
-        vector_field: VectorField2D = VectorField2D([x_component, y_component])
-        cluster: Cluster = Cluster(vector_field=vector_field)
-        cluster.curves_indices = curve_indices
-        cluster.curves = curves
+        cluster.curves_indices.append(worst_index)
+        cluster.curves.append(curves[worst_index])
 
         # Optimize the vector field
         cluster.optimize_vector_field(
@@ -303,45 +282,43 @@ def compute_first_assignment(  # todo: return clusters (w/ vectorfield = None)?
             smoothness_weight=smoothness_weight
         )
 
-        # Store optimized components
-        vector_fields.append(VectorField2D([x_component, y_component]))
-
         # Update per-curve error estimates
         for j, curve in enumerate(curves):
             new_error = compute_error_implicit(
-                vector_field=vector_fields[i],
+                vector_field=cluster.vector_field,
                 total_curve_length=total_curve_length,
                 smoothness_weight=smoothness_weight,
                 curve=curve
             )
             errors[j] = min(errors[j], new_error)
 
-    # Assign each curve to the best vector field
-    result: list[int] = []  # mapVectorFieldCurve
-    result_indices: list[list[int]] = [[] for i in range(number_of_vector_fields)]
 
+    for cluster in clusters:
+        cluster.clear_curves()
+    # -- ASSIGN --
     for i, curve in enumerate(curves):
+
         curve_errors = [
             compute_error_implicit(
-                vector_field=vf,
+                vector_field=cluster.vector_field,
+                curve=curve,
                 total_curve_length=total_curve_length,
-                smoothness_weight=smoothness_weight,
-                curve=curve
+                smoothness_weight=smoothness_weight
             )
-            for vf in vector_fields
+            for cluster in clusters
         ]
-
         best_index: int = int(np.argmin(curve_errors))
-        result_indices[best_index].append(i)
-        result.append(best_index)
 
-    return result, result_indices
+        clusters[best_index].curves.append(curve)
+        clusters[best_index].curves_indices.append(i)
+
+    return clusters
 
 
 def set_constraints(
         polygonal_paths: list[PolygonalPath2D],
         grid: Grid
-) -> (list[CurveDescription], float):
+) -> tuple[list[CurveDescription], float]:
     """
     TOP-LEVEL TESSELATION + TOTAL-PATH-SIZE COUNT
 
@@ -367,11 +344,12 @@ def set_constraints(
         # Validate that input times are non-decreasing.
         for j in range(pp.number_of_points() - 1):
             if pp.get_point(j + 1).time < pp.get_point(j).time:
-                print("Line is broken, has backward time.", flush=True)
+                raise Exception("Line is broken, has backward time.")
 
         # Clip / tessellate the path to the grid
         grid.clip_line(pp)
 
+        # Verify tessellation didn't introduce non-monotonic times.
         # Verify tessellation didn't introduce non-monotonic times.
         for j in range(pp.number_of_points() - 1):
             if pp.get_point(j + 1).time < pp.get_point(j).time:
@@ -379,6 +357,7 @@ def set_constraints(
                       f"{pp.get_point(j + 1).time} {pp.get_point(j).time}")
 
         curve: CurveDescription = CurveDescription(path=pp, grid=grid)
+        curve.index = i
         total_curve_length += curve.length
 
         curve_descriptions.append(curve)
@@ -448,7 +427,7 @@ def optimize_all_clusters_assignments(  # ASSIGN STEP
         clusters: list[Cluster],
         total_curve_length: float,
         smoothness_weight: float
-) -> (float, int):
+) -> tuple[float, int]:
     """
     Assign each curve to the vector field that minimizes its contribution
     to the objective, then update the per-vector-field curve lists.
@@ -475,11 +454,11 @@ def optimize_all_clusters_assignments(  # ASSIGN STEP
             errors = [  # error of curve in each cluster
                 compute_error_implicit(
                     curve=curve,
-                    vector_field=cluster.vector_field,
+                    vector_field=cluster2.vector_field,
                     total_curve_length=total_curve_length,
                     smoothness_weight=smoothness_weight
                 )
-                for cluster in clusters
+                for cluster2 in clusters
             ]
 
             i_min_cluster = np.argmin(errors)
@@ -523,5 +502,5 @@ def repopulate_all_empty_cluster_by_random(  # todo: implement repopulate_all_em
             index_bigger = np.argmax(len_clusters)
 
             # Split the largest cluster into two
-            cluster.curves = clusters[index_bigger].curves[1:2]
-            clusters[index_bigger].curves = clusters[index_bigger].curves[0:2]
+            cluster.curves = clusters[index_bigger].curves[1::2]
+            clusters[index_bigger].curves = clusters[index_bigger].curves[0::2]

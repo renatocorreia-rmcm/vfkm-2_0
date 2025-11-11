@@ -1,4 +1,3 @@
-from typing import Optional
 import numpy as np
 
 Vector = np.ndarray  # in this class, will represent the space coordinates of some point

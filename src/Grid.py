@@ -236,7 +236,12 @@ class Grid:
         )
 
         if det == 0:
-            raise ValueError("Degenerate triangle with zero determinant in locate_point")
+            # fallback: degenerate triangle (possible at grid borders).
+            # assign full weight to the first vertex to avoid crashing.
+            point_loc.barycentric_cords[0] = 1.0
+            point_loc.barycentric_cords[1] = 0.0
+            point_loc.barycentric_cords[2] = 0.0
+            return
 
         # each barycentric coordinate is a ratio of the area of a sub-triangle to the area of the main triangle.
 

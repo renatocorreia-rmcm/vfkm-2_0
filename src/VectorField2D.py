@@ -1,14 +1,10 @@
 from __future__ import annotations
 
 import numpy as np
-from typing import Optional
-
 
 class VectorField2D:
     """
-	consisted by a np.2Darray that contains:
-	a nd array for x-axis,
-	a nd array for y-axis
+	list of axis
 
 	"""
 
