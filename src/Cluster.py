@@ -22,7 +22,6 @@ class Cluster:
     vector_field: VectorField2D
 
     # CURVES
-    curves_indices: list[int]  # indices of curves belonging to this cluster
     curves: list[CurveDescription]
 
     # ERRORS
@@ -50,7 +49,6 @@ class Cluster:
 
         self.vector_field = vector_field
 
-        self.curves_indices = []
         self.curves = []
 
         self.curve_errors = []
@@ -68,7 +66,6 @@ class Cluster:
         """
 		used in assign step
 		"""
-        self.curves_indices.clear()
         self.curves.clear()
         self.curve_errors.clear()
         self.total_error = 0
@@ -95,13 +92,11 @@ class Cluster:
 
         # load values into independent terms
         for curve in self.curves:  # for each curve
-            for j in range(len(curve.segments)):  # for each segment in curve
-                k_factor: float = (1.0 - smoothness_weight) * (
-                        curve.segments[j].timestamps[1] - curve.segments[j].timestamps[
-                    0]) / total_curve_length  # weighting factor
+            for segment in curve.segments:  # for each segment in curve
+                k_factor: float = (1.0 - smoothness_weight) * (segment.timestamps[1] - segment.timestamps[0]) / total_curve_length  # weighting factor
                 # Sum contributions into the RHS vectors.
-                curve.segments[j].add_cTx(indepx, curve.rhsx, k_factor)
-                curve.segments[j].add_cTx(indepy, curve.rhsy, k_factor)
+                segment.add_cTx(indepx, curve.rhsx, k_factor)
+                segment.add_cTx(indepy, curve.rhsy, k_factor)
 
         # import here to avoid circular import at module load time
         from src.VFKM import ProblemSettings, cg_solve
