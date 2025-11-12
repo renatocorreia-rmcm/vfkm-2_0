@@ -9,7 +9,6 @@ import numpy as np
 class Cluster:
     """
     represents a set of trajectories + a vector field
-
     """
 
     name: str  # f"{name of parent}:{amount of curves in this cluster}"
@@ -19,7 +18,7 @@ class Cluster:
     children: list[Cluster]
 
     # VECTOR FIELD
-    vector_field: VectorField2D
+    vector_field: Optional[VectorField2D]  # todo: make possible to pass grid resolution and auto create vf with np.zeros
 
     # CURVES
     curves: list[CurveDescription]
@@ -31,7 +30,7 @@ class Cluster:
 
     def __init__(
             self,
-            vector_field: VectorField2D,
+            vector_field: Optional[VectorField2D],
             name: str = "",
             parent: Optional[Cluster] = None
     ):

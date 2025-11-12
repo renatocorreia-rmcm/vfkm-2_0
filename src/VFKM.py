@@ -165,8 +165,10 @@ class VFKM:
             )
 
             if total_change == 0:  # convergence
-                break
+                print(f"Converged in {i} iterations.")
+                return clusters
 
+        print(f"iteration limit reached ({number_of_iterations} iterations).")
         return clusters
 
 
@@ -272,7 +274,6 @@ def compute_first_assignment(
         # Seed each vector field with the currently worst-fitting curve
         worst_index: int = int(np.argmax(errors))
 
-        cluster.curves_indices.append(worst_index)
         cluster.curves.append(curves[worst_index])
 
         # Optimize the vector field
@@ -310,7 +311,6 @@ def compute_first_assignment(
         best_index: int = int(np.argmin(curve_errors))
 
         clusters[best_index].curves.append(curve)
-        clusters[best_index].curves_indices.append(i)
 
     return clusters
 
@@ -470,7 +470,6 @@ def optimize_all_clusters_assignments(  # ASSIGN STEP
             total_change += int(changed)
             total_error += error
 
-            clusters[i_min_cluster].curves_indices.append(curve.index)
             clusters[i_min_cluster].curves.append(curve)
             clusters[i_min_cluster].curve_errors.append(error)
 

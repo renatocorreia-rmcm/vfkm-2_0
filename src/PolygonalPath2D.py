@@ -32,7 +32,7 @@ class PolygonalPath2D:
         if points is None:
             points = []
 
-        self.points = points
+        self.points = points.copy()
 
         if tangents is None:
             tangents = self._calculate_tangents()

@@ -3,7 +3,7 @@ import numpy as np
 Vector = np.ndarray  # in this class, will represent the space coordinates of some point
 
 
-class Point2D:
+class Point2D:  # todo: no need for tuple, use different attributes
     """
     2D space coordinate + float timestamp,
 

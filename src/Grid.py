@@ -118,15 +118,15 @@ class Grid:
     delta_x: float
     delta_y: float
 
-    def __init__(self, x: float, y: float, w: float, h: float, resolution_x: int, resolution_y: int):
+    def __init__(self, bounding_box: dict[str, float], resolution: int):
 
-        # m_* flags member variable (attribute)
-        self.resolution_x = resolution_x
-        self.resolution_y = resolution_y
-        self.x = x
-        self.y = y
-        self.w = w
-        self.h = h
+        # square grid
+        self.resolution_x = self.resolution_y = resolution
+
+        self.x = bounding_box["x_min"]
+        self.y = bounding_box["y_min"]
+        self.w = bounding_box["x_max"] - bounding_box["x_min"]
+        self.h = bounding_box["y_max"] - bounding_box["y_min"]
 
         # escalas   (cord. grid) / (cord. mundo real)
         self.delta_x = self.w / (self.resolution_x - 1)
