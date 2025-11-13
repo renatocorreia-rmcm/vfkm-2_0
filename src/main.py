@@ -111,6 +111,63 @@ def load_curves(filename: str) -> tuple[list[PolygonalPath], dict[str, float]]:
     return paths, bounding_box
 
 
+import os
+
+
+def save_experiment(directory: str, current_file_loaded: str, root_cluster: Cluster):
+
+    # Create experiment file
+    experiment_path = os.path.join(directory, "experiment.txt")
+    with open(experiment_path, "w") as experiment_file:
+        experiment_file.write(current_file_loaded + "\n")
+
+        # Initialize queue using a list
+        nodes_to_process = [root_cluster]
+
+        # Mapping from cluster to its string path
+        map_cluster_path = {root_cluster: "r"}
+
+        experiment_file.write("-1 r\n")
+
+        while nodes_to_process:
+            # Take next cluster (FIFO)
+            c = nodes_to_process[0]
+            nodes_to_process = nodes_to_process[1:]
+
+            cluster_name = map_cluster_path[c]
+
+            # --- Write curve indices file ---
+            curve_filename = os.path.join(directory, f"curves_{cluster_name}.txt")
+            with open(curve_filename, "w") as curve_indices_file:
+                number_of_curves = len(c.indices)
+                assert number_of_curves == len(c.curveErrors)
+
+                for idx, err in zip(c.indices, c.curveErrors):
+                    curve_indices_file.write(f"{idx} {err}\n")
+
+            # --- Write vector field file ---
+            vector_field_filename = os.path.join(directory, f"vf_{cluster_name}.txt")
+            with open(vector_field_filename, "w") as vector_field_file:
+                x_component = c.vectorField[0]
+                y_component = c.vectorField[1]
+                grid_dimension = x_component.getDimension()
+
+                vector_field_file.write(f"{grid_dimension}\n")
+
+                for i in range(grid_dimension):
+                    vector_field_file.write(f"{x_component[0][i]} {y_component[0][i]}\n")
+
+            # --- Process children ---
+            for i, child in enumerate(c.children):
+                child_name = f"{cluster_name}_{i}"
+                map_cluster_path[child] = child_name
+
+                experiment_file.write(f"{cluster_name} {child_name}\n")
+                nodes_to_process.append(child)
+
+
+
+
 def init_experiment(
         filename: str,
         grid_resolution: int
