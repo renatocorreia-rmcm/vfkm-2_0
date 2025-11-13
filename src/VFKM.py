@@ -8,9 +8,9 @@ from scipy.sparse.linalg import LinearOperator  # class to incorporate original 
 from functools import partial
 
 from Grid import Grid, CurveDescription
-from src.Cluster import Cluster
-from src.PolygonalPath2D import PolygonalPath2D
-from src.VectorField2D import VectorField2D
+from Cluster import Cluster
+from PolygonalPath2D import PolygonalPath2D
+from VectorField2D import VectorField2D
 
 
 class ProblemSettings:  # used only by MULTIPLY_BY_A
@@ -272,7 +272,7 @@ def compute_first_assignment(
     for cluster in clusters:
 
         # Seed each vector field with the currently worst-fitting curve
-        worst_index: int = int(np.argmax(errors))
+        worst_index: int = int(np.argmax(errors))  # todo: solve bug - is attempting to get argmax of empty sequence
 
         cluster.curves.append(curves[worst_index])
 

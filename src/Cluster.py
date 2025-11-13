@@ -2,7 +2,7 @@ from __future__ import annotations
 from typing import Optional
 
 from VectorField2D import VectorField2D
-from src.Grid import CurveDescription, Grid
+from Grid import CurveDescription, Grid
 import numpy as np
 
 
@@ -98,7 +98,7 @@ class Cluster:
                 segment.add_cTx(indepy, curve.rhsy, k_factor)
 
         # import here to avoid circular import at module load time
-        from src.VFKM import ProblemSettings, cg_solve
+        from VFKM import ProblemSettings, cg_solve
 
         problem = ProblemSettings(grid, self.curves, total_curve_length, smoothness_weight)
 

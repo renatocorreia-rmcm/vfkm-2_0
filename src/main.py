@@ -1,17 +1,17 @@
 import numpy as np
 
-from src.Cluster import Cluster
-from src.Grid import Grid
-from src.Point2D import Point2D
-from src.PolygonalPath2D import PolygonalPath2D
+from Cluster import Cluster
+from Grid import Grid
+from Point2D import Point2D
+from PolygonalPath2D import PolygonalPath2D
 
 
 import sys
 from math import inf
 
-from src.PolygonalPath2D import PolygonalPath2D as PolygonalPath
-from src.VFKM import VFKM
-from src.VectorField2D import VectorField2D
+from PolygonalPath2D import PolygonalPath2D as PolygonalPath
+from VFKM import VFKM
+from VectorField2D import VectorField2D
 
 
 def load_curves(filename: str) -> tuple[list[PolygonalPath], dict[str, float]]:
@@ -23,7 +23,7 @@ def load_curves(filename: str) -> tuple[list[PolygonalPath], dict[str, float]]:
         bounding box: dict with keys x_min, x_max, y_min, y_max,
     """
 
-    print("loading curves")
+    print("LOADING CURVES")
 
     paths: list[PolygonalPath] = []
 
@@ -32,78 +32,71 @@ def load_curves(filename: str) -> tuple[list[PolygonalPath], dict[str, float]]:
         "x_max": -inf, "y_max": -inf, "t_max": -inf
     }
 
-    try:
-        with (open(filename, "r") as file, open("/tmp/real_indices.txt", "w") as real_indices):  # (create temp file to store real indices)
-            # read bounding box
-            header: list[str] = file.readline().split()
-            if len(header) < 6:
-                raise ValueError("Invalid bounding box line in input file")
+    with (open(filename, "r") as file):  # (create temp file to store real indices)
+        # read bounding box
+        header: list[str] = file.readline().split()
+        if len(header) < 6:
+            raise ValueError("Invalid bounding box line in input file")
 
-            bounding_box["x_min"], bounding_box["x_max"], bounding_box["y_min"], bounding_box["y_max"], bounding_box["t_min"], bounding_box["t_max"] = map(float, header)
+        bounding_box["x_min"], bounding_box["x_max"], bounding_box["y_min"], bounding_box["y_max"], bounding_box["t_min"], bounding_box["t_max"] = map(float, header)
 
-            curve_contents: list[Point2D] = []
-            real_index: int = 0
+        curve_contents: list[Point2D] = []
+        real_index: int = 0
 
-            for line in file:
-                tokens = [float(i) for i in line.strip().split()]
-                if len(tokens) < 3:  # missing data (coordinate or timestamp)
+        for line in file:
+            tokens = [float(i) for i in line.strip().split()]
+            if len(tokens) < 3:  # missing data (coordinate or timestamp)
+                continue
+
+            x, y, t = map(float, tokens)
+
+            if x == y == t == 0:  # end of curve (explicit - flag)
+                if len(curve_contents) >= 2:
+                    paths.append(PolygonalPath(curve_contents))
+                real_index += 1
+                curve_contents.clear()
+
+            elif( # end of curve (implicit - Out of bounding box)
+                    x < bounding_box["x_min"] or x > bounding_box["x_max"] or
+                    y < bounding_box["y_min"] or y > bounding_box["y_max"] or
+                    t < bounding_box["t_min"] or t > bounding_box["t_max"]
+            ):
+                if len(curve_contents) >= 2:
+                    paths.append(PolygonalPath(curve_contents))
+                # real_index is NOT incremented here
+                curve_contents.clear()
+
+            else:  # valid point
+                new_point = Point2D(point2d=(np.array([x, y]), t))
+
+                if not curve_contents:  # first point in curve
+                    curve_contents.append(new_point)
+                elif t == curve_contents[-1].time:  # repeated timestamp
                     continue
-
-                x, y, t = map(float, tokens)
-
-                if x == y == t == 0:  # end of curve (explicit - flag)
-                    if len(curve_contents) >= 2:
-                        real_indices.write(f"{real_index}\n")
-                        paths.append(PolygonalPath(curve_contents))
-                    real_index += 1
-                    curve_contents.clear()
-
-                elif( # end of curve (implicit - Out of bounding box)
-                        x < bounding_box["x_min"] or x > bounding_box["x_max"] or
-                        y < bounding_box["y_min"] or y > bounding_box["y_max"] or
-                        t < bounding_box["t_min"] or t > bounding_box["t_max"]
+                elif (  # do not move
+                    x == curve_contents[-1].space[0]
+                    and y == curve_contents[-1].space[1]
                 ):
-                    if len(curve_contents) >= 2:
-                        real_indices.write(f"{real_index}\n")
-                        paths.append(PolygonalPath(curve_contents))
-                    # real_index is NOT incremented here
-                    curve_contents.clear()
+                    continue
+                else:  # regular point
+                    curve_contents.append(new_point)
 
-                else:  # valid point
-                    new_point = Point2D(point2d=(np.array([x, y]), t))
-
-                    if not curve_contents:  # first point in curve
-                        curve_contents.append(new_point)
-                    elif t == curve_contents[-1].time:  # repeated timestamp
-                        continue
-                    elif (  # do not move
-                        x == curve_contents[-1].space[0]
-                        and y == curve_contents[-1].space[1]
-                    ):
-                        continue
-                    else:  # regular point
-                        curve_contents.append(new_point)
-
-    except FileNotFoundError:
-        print(f"Unable to open file {filename}", file=sys.stderr)
-        return paths, bounding_box
-
-    # Output read data to file
-    with open("read_curves.txt", "w") as outfile:
-        outfile.write(
-            f"{bounding_box['x_min']} {bounding_box['x_max']} "
-            f"{bounding_box['y_min']} {bounding_box['y_max']} "
-            f"{bounding_box['t_min']} {bounding_box['t_max']}\n"
-        )
-
-        for path in paths:
-            for point in path.points:
-                outfile.write(f"{point.space} {point.time}\n")
-            outfile.write("0 0 0\n")
 
     # Optional debug section
-    DEBUG = True
+    DEBUG = False
     if DEBUG:
+        # Output read data to file
+        with open("read_curves.txt", "w") as outfile:
+            outfile.write(
+                f"{bounding_box['x_min']} {bounding_box['x_max']} "
+                f"{bounding_box['y_min']} {bounding_box['y_max']} "
+                f"{bounding_box['t_min']} {bounding_box['t_max']}\n"
+            )
+
+            for path in paths:
+                for point in path.points:
+                    outfile.write(f"{point.space} {point.time}\n")
+                outfile.write("0 0 0\n")
         print(f"numberOfPathsRead = {len(paths)}")
         for i, path in enumerate(paths):
             print(f"Path {i} \n {path}")
@@ -139,23 +132,23 @@ def save_experiment(directory: str, current_file_loaded: str, root_cluster: Clus
             # --- Write curve indices file ---
             curve_filename = os.path.join(directory, f"curves_{cluster_name}.txt")
             with open(curve_filename, "w") as curve_indices_file:
-                number_of_curves = len(c.indices)
-                assert number_of_curves == len(c.curveErrors)
+                number_of_curves = len(c.curves)
+                assert number_of_curves == len(c.curve_errors)
 
-                for idx, err in zip(c.indices, c.curveErrors):
-                    curve_indices_file.write(f"{idx} {err}\n")
+                for i in range(len(c.curves)):
+                    curve_indices_file.write(f"{c.curves[i].index} {c.curve_errors[i]}\n")
 
             # --- Write vector field file ---
             vector_field_filename = os.path.join(directory, f"vf_{cluster_name}.txt")
             with open(vector_field_filename, "w") as vector_field_file:
-                x_component = c.vectorField[0]
-                y_component = c.vectorField[1]
-                grid_dimension = x_component.getDimension()
+                x_component = c.vector_field[0]
+                y_component = c.vector_field[1]
+                grid_dimension = x_component.shape[0]
 
                 vector_field_file.write(f"{grid_dimension}\n")
 
                 for i in range(grid_dimension):
-                    vector_field_file.write(f"{x_component[0][i]} {y_component[0][i]}\n")
+                    vector_field_file.write(f"{x_component[i]} {y_component[i]}\n")
 
             # --- Process children ---
             for i, child in enumerate(c.children):
@@ -208,8 +201,8 @@ def main():
 
     # check arguments
     right_number_of_parameters = 6
-    if len(sys.argv) != right_number_of_parameters:
-        print("./vfkm trajectoryFile gridResolution numberOfVectorFields smoothnessWeight outputDirectory")
+    if len(sys.argv) != right_number_of_parameters:  # aslo check type and file existence
+        print("./main.py trajectoryFile gridResolution numberOfVectorFields smoothnessWeight outputDirectory")
         return
 
     # load arguments
@@ -218,6 +211,15 @@ def main():
     number_of_vector_fields = int(sys.argv[3])
     smoothness_weight = float(sys.argv[4])
     output_directory = sys.argv[5]
+
+    print("\n LOADED PARAMETERS \n")
+
+    print(f"filename: {filename}")
+    print(f"grid_resolution: {grid_resolution}")
+    print(f"number_of_vector_fields: {number_of_vector_fields}")
+    print(f"smoothness_weight: {smoothness_weight}")
+    print(f"output_directory: {output_directory}")
+
 
     # initialize parameters
     paths: list[PolygonalPath]
@@ -228,6 +230,13 @@ def main():
         filename=filename,
         grid_resolution=grid_resolution
     )
+
+    print("\n INITIALIZED PARAMETERS \n")
+
+    print(f"Initialized {len(paths)} paths.")
+    # print(paths)
+    print(grid)
+    print(root_cluster)
 
     # OPTIMIZE
     print("Optimizing...")
@@ -240,6 +249,14 @@ def main():
         paths=paths,
         number_of_vector_fields=number_of_vector_fields,
         smoothness_weight=smoothness_weight
+    )
+
+    root_cluster.children = clusters
+
+    save_experiment(
+        directory=output_directory,
+        current_file_loaded=filename,
+        root_cluster=root_cluster  # first cluster is root
     )
 
 
