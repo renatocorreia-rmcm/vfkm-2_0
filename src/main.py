@@ -1,17 +1,20 @@
 import numpy as np
 
+import sys  # to get args
+
 from Cluster import Cluster
 from Grid import Grid
 from Point2D import Point2D
 from PolygonalPath2D import PolygonalPath2D
 
-
-import sys
 from math import inf
 
 from PolygonalPath2D import PolygonalPath2D as PolygonalPath
 from VFKM import VFKM
 from VectorField2D import VectorField2D
+
+from visualizer import visualize_curves
+
 
 # todo: correct numpy typing float -> np.int64
 
@@ -257,6 +260,13 @@ def main():
         current_file_loaded=filename,
         root_cluster=root_cluster  # first cluster is root
     )
+
+    print("PLOTTING")
+    for cluster in clusters:
+        visualize_curves(curves=cluster.curves, grid=grid)
+
+
+
 
 
 if __name__ == "__main__":
