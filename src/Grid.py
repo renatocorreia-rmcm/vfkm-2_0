@@ -9,7 +9,7 @@ from Grid_aux import TriangularFace, PointLocation, Segment
 from PolygonalPath2D import PolygonalPath2D  # for Grid.clip_line()
 
 
-class CurveDescription:  # todo: it contain its index. No need to array of curve indices in functions arguments
+class CurveDescription:
     """
 	Array of Segments
 

@@ -13,6 +13,7 @@ from PolygonalPath2D import PolygonalPath2D as PolygonalPath
 from VFKM import VFKM
 from VectorField2D import VectorField2D
 
+# todo: correct numpy typing float -> np.int64
 
 def load_curves(filename: str) -> tuple[list[PolygonalPath], dict[str, float]]:
     """
@@ -159,8 +160,6 @@ def save_experiment(directory: str, current_file_loaded: str, root_cluster: Clus
                 nodes_to_process.append(child)
 
 
-
-
 def init_experiment(
         filename: str,
         grid_resolution: int
@@ -181,7 +180,7 @@ def init_experiment(
 
     # Initialize root cluster
     root_cluster = Cluster(
-        name = str(len(paths)),
+        name=str(len(paths)),
         vector_field=VectorField2D([
         np.zeros(shape=g.resolution_x*g.resolution_y),
         np.zeros(shape=g.resolution_x * g.resolution_y)

@@ -24,9 +24,7 @@ class Cluster:
     curves: list[CurveDescription]
 
     # ERRORS
-    curve_errors: list[float]  # for each indice in self.curves_indices
-    total_error: float  # total error of cluster
-    max_error: float = 0.0  # among all curves in this cluster.
+    curve_errors: list[float]  # for each curve in self.curves
 
     def __init__(
             self,
@@ -41,7 +39,7 @@ class Cluster:
 
         """
 
-        self.name = name  # in 1.0, it is computed outside initializer call (and passed as arg). Could this be done by the own Cluster.__init__ ?
+        self.name = name  # todo: in 1.0, it is computed outside initializer call (and passed as arg). Could this be done by the own Cluster.__init__ ?
 
         self.parent = parent
         self.children = []
@@ -51,8 +49,6 @@ class Cluster:
         self.curves = []
 
         self.curve_errors = []
-        self.total_error = 0.0
-        self.max_error = 0.0
 
     def clear_children(self) -> None:
         self.children.clear()
@@ -67,8 +63,6 @@ class Cluster:
 		"""
         self.curves.clear()
         self.curve_errors.clear()
-        self.total_error = 0
-        self.max_error = 0
 
     def optimize_vector_field(
             self,
@@ -98,7 +92,7 @@ class Cluster:
                 segment.add_cTx(indepy, curve.rhsy, k_factor)
 
         # import here to avoid circular import at module load time
-        from VFKM import ProblemSettings, cg_solve
+        from VFKM import ProblemSettings, cg_solve  # todo: use dict instead
 
         problem = ProblemSettings(grid, self.curves, total_curve_length, smoothness_weight)
 
