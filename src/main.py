@@ -1,6 +1,8 @@
 import numpy as np
 
 import sys  # to get args
+import os
+
 
 from Cluster import Cluster
 from Grid import Grid
@@ -18,7 +20,9 @@ from visualizer import visualize_vector_field
 
 # todo: correct numpy typing float -> np.int64
 
-def load_curves(filename: str) -> tuple[list[PolygonalPath], dict[str, float]]:
+def load_curves(
+        filename: str
+) -> tuple[list[PolygonalPath], dict[str, float]]:
     """
     params:
         filename: str - path to input file
@@ -108,10 +112,13 @@ def load_curves(filename: str) -> tuple[list[PolygonalPath], dict[str, float]]:
     return paths, bounding_box
 
 
-import os
 
 
-def save_experiment(directory: str, current_file_loaded: str, root_cluster: Cluster):
+def save_experiment(
+        directory: str,
+        current_file_loaded: str,
+        root_cluster: Cluster
+) -> None:
 
     # Create experiment file
     experiment_path = os.path.join(directory, "experiment.txt")
