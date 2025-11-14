@@ -7,16 +7,18 @@ visualize cluster
 
 """
 
-import matplotlib as mpl
+
 import matplotlib.pyplot as plt
 import numpy as np
 
 from Grid import CurveDescription, Grid
+from VectorField2D import VectorField2D
+from Cluster import Cluster
 
 
 def visualize_curves(curves: list[CurveDescription], grid: Grid) -> None:
 	"""
-	Visualizes a list of curves using matplotlib.
+	Plot curves of a cluster
 
 	:param curves: List of CurveDescription objects to visualize.
 	"""
@@ -41,3 +43,40 @@ def visualize_curves(curves: list[CurveDescription], grid: Grid) -> None:
 	plt.legend()
 	plt.grid()
 	plt.show()
+
+
+def visualize_vector_field(vector_field: VectorField2D, grid: Grid) -> None:
+	# 1. Get the 1D component arrays
+	x_1d: np.ndarray[float] = vector_field[0]
+	y_1d: np.ndarray[float] = vector_field[1]
+
+	# 2. Get grid resolutions
+	res_x = grid.get_resolution_x()  # Or grid.res_x
+	res_y = grid.get_resolution_y()  # Or grid.res_y
+
+	# 3. Create the "world coordinate" arrays
+	# We use linspace to get the actual coordinates of the grid vertices
+	x_coords = np.linspace(grid.x, grid.x + grid.w, res_x)
+	y_coords = np.linspace(grid.y, grid.y + grid.h, res_y)
+
+	# 4. Create the 2D coordinate grids
+	# Xv and Yv will have shape (res_y, res_x)
+	Xv, Yv = np.meshgrid(x_coords, y_coords)
+
+	# 5. Reshape the 1D vector data into 2D grids
+	# We shape them to (res_y, res_x) to match Xv and Yv
+	U = x_1d.reshape(res_y, res_x)
+	V = y_1d.reshape(res_y, res_x)
+
+	# 6. Plot
+	plt.figure(figsize=(10, 8))
+	plt.quiver(Xv, Yv, U, V, angles='xy', scale_units='xy', scale=None)  # 'angles' and 'scale' help
+	plt.title("Vector Field Visualization")
+	plt.xlabel("World X Coordinate")
+	plt.ylabel("World Y Coordinate")
+	plt.axis('equal')  # Important for seeing vector directions correctly
+	plt.show()
+
+
+def visualize_cluster(cluster: Cluster, grid: Grid):
+	pass

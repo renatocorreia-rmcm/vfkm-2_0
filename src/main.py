@@ -13,7 +13,7 @@ from PolygonalPath2D import PolygonalPath2D as PolygonalPath
 from VFKM import VFKM
 from VectorField2D import VectorField2D
 
-from visualizer import visualize_curves
+from visualizer import visualize_vector_field
 
 
 # todo: correct numpy typing float -> np.int64
@@ -263,7 +263,7 @@ def main():
 
     print("PLOTTING")
     for cluster in clusters:
-        visualize_curves(curves=cluster.curves, grid=grid)
+        visualize_vector_field(vector_field=cluster.vector_field, grid=grid)
 
 
 
