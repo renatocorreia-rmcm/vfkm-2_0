@@ -149,9 +149,9 @@ class Grid:
                 or
                 (v[1] < 0 or v[1] > (self.resolution_y - 1.0))
         ):
-            raise ValueError("Point out of grid bounds")
+            raise ValueError(f"Point out of grid bounds: {v}")
 
-        face: TriangularFace = TriangularFace()
+        face: TriangularFace = TriangularFace()  # todo: rewrite to to avoid creating NULL object
 
         # square cells indices
         square_x: int = int(v[0])
@@ -212,13 +212,12 @@ class Grid:
             index // self.resolution_x
         ])
 
-    def locate_point(self, point_loc: PointLocation, point: np.ndarray[float]) -> None:
+    def locate_point(self, point_loc: PointLocation, point_coordinates: np.ndarray[float]) -> None:  # todo: re-write to return instead of reference passing
         """
 		Calculates the barycentric coordinates of a point within a triangular face.
 
 		If face is fixed, set only barycentric coordinates within face.
 		"""
-        # todo: chatgpt says this calculation is wrong. Investigate.
 
         # Retrieve the three vertices of the triangular face
         vertices: tuple[np.ndarray, np.ndarray, np.ndarray] = (
@@ -246,13 +245,13 @@ class Grid:
         # each barycentric coordinate is a ratio of the area of a sub-triangle to the area of the main triangle.
 
         beta = (
-                       (vertices[0][0] - vertices[2][0]) * (point[1] - vertices[2][1]) -
-                       (vertices[0][1] - vertices[2][1]) * (point[0] - vertices[2][0])
+                       (vertices[0][0] - vertices[2][0]) * (point_coordinates[1] - vertices[2][1]) -
+                       (vertices[0][1] - vertices[2][1]) * (point_coordinates[0] - vertices[2][0])
                ) / det
 
         gamma = (
-                        (vertices[1][0] - vertices[0][0]) * (point[1] - vertices[0][1]) -
-                        (vertices[1][1] - vertices[0][1]) * (point[0] - vertices[0][0])
+                        (vertices[1][0] - vertices[0][0]) * (point_coordinates[1] - vertices[0][1]) -
+                        (vertices[1][1] - vertices[0][1]) * (point_coordinates[0] - vertices[0][0])
                 ) / det
 
         alpha = 1.0 - gamma - beta

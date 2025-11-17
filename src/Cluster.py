@@ -1,9 +1,14 @@
 from __future__ import annotations
 from typing import Optional
 
+from numpy.ma.core import absolute
+from scipy.interpolate import barycentric_interpolate
+
 from VectorField2D import VectorField2D
 from Grid import CurveDescription, Grid
 import numpy as np
+
+from src.Grid_aux import TriangularFace, PointLocation
 
 
 class Cluster:
@@ -113,3 +118,29 @@ class Cluster:
         # update previous vector field values
         self.vector_field[0][:] = x
         self.vector_field[1][:] = y
+
+
+    def get_vector(self, relative_coordinates: np.ndarray[float], grid:Grid) -> np.ndarray[float]:
+        """
+        pass relative coordinates ([0,1], [0,1])
+        return vector this position
+        """
+
+        grid_coordinates: np.ndarray[float] = relative_coordinates * np.array([grid.get_resolution_x()-1, grid.get_resolution_y()-1])  # todo: check if coordinate transformation is correct
+
+        # get face
+        face: TriangularFace = grid.get_face_where_point_lies(grid_coordinates)
+        # get barycentric coordinates
+        point_location: PointLocation = PointLocation(face=face)
+        grid.locate_point(point_loc = point_location, point_coordinates=grid_coordinates)
+        barycentric_cords: np.ndarray[float] = point_location.barycentric_cords
+        # get vertex vectors
+        vertex_vectors: list[np.ndarray[float]] = [
+            np.array([
+                [ self.vector_field[0][face.indices[i]], self.vector_field[1][face.indices[i]]]
+            ]) for i in range(3)
+        ]
+
+        return  barycentric_cords[0] * vertex_vectors[0] + \
+                barycentric_cords[1] * vertex_vectors[1] + \
+                barycentric_cords[2] * vertex_vectors[2]
