@@ -8,7 +8,7 @@ from VectorField2D import VectorField2D
 from Grid import CurveDescription, Grid
 import numpy as np
 
-from src.Grid_aux import TriangularFace, PointLocation
+from src.Grid_aux import TriangularFace
 
 
 class Cluster:
