@@ -24,24 +24,31 @@ from src.Cluster import Cluster
 from src.Grid import Grid
 
 import matplotlib
+
+from src.PolygonalPath2D import PolygonalPath2D
+
 matplotlib.use('Qt5Agg')  # or 'QtAgg', 'Qt5Agg', et
 from matplotlib import pyplot as plt
 
 
 
 
-class Visualizer:
+class Visualizer:  # todo: make read file to avoid re-runig VFKM just for visualization
 
-    grid: Grid
+    grid: Grid  # todo: bounding box and resolution - use raw parameters or re-create grid inside this object
 
     clusters: list[Cluster]
-    curves_file: str
 
-    def __init__(self, clusters: list[Cluster], curve_file: str, grid: Grid):
+    paths: np.ndarray[PolygonalPath2D]
+
+
+
+    def __init__(self, clusters: list[Cluster], paths: list[PolygonalPath2D], grid: Grid):
 
         self.clusters = clusters
-        self.curves_file = curve_file
         self.grid = grid
+
+        self.paths = np.array(paths, dtype=PolygonalPath2D)
 
     def visualize_vector_fields(self, resolution: int) -> None:
         for i, cluster in enumerate(self.clusters):
@@ -83,3 +90,25 @@ class Visualizer:
             plt.legend()
 
             plt.show()  # This will show one plot for each cluster, one by one
+
+    def visualize_curves(self) -> None:
+        for cluster in self.clusters:
+            plt.figure(figsize=(8, 8))
+            plt.title(f"Curves in Cluster {cluster.name}")
+
+            for curve in cluster.curves:
+                index: int = curve.index
+                path: PolygonalPath2D = self.paths[index]
+
+                x_coords = [point.space[0] for point in path.points]
+                y_coords = [point.space[1] for point in path.points]
+
+                plt.plot(x_coords, y_coords)
+
+            plt.xlim(self.grid.x, self.grid.x + self.grid.w)
+            plt.ylim(self.grid.y, self.grid.y + self.grid.h)
+
+            # Optional: keep aspect ratio square
+            plt.gca().set_aspect("equal", adjustable="box")
+
+            plt.show()

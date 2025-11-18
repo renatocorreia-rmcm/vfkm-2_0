@@ -20,7 +20,7 @@ def load_curves(filename: str) -> tuple[list[PolygonalPath], dict[str, float]]:
     params:
         filename: str - path to input file
     returns:
-        number of curves read: int
+        polygonalpaths
         bounding box: dict with keys x_min, x_max, y_min, y_max,
     """
 
@@ -109,7 +109,7 @@ import os
 
 
 def save_experiment(directory: str, current_file_loaded: str, root_cluster: Cluster):
-
+    # todo: include file with data for init visualizer
     # Create experiment file
     experiment_path = os.path.join(directory, "experiment.txt")
     with open(experiment_path, "w") as experiment_file:
@@ -157,7 +157,7 @@ def save_experiment(directory: str, current_file_loaded: str, root_cluster: Clus
                 map_cluster_path[child] = child_name
 
                 experiment_file.write(f"{cluster_name} {child_name}\n")
-                nodes_to_process.append(child)
+                nodes_to_process.append(child)  # include file with data for initialize
 
 
 
@@ -262,11 +262,12 @@ def main():
 
     visualizer = Visualizer(
         clusters=clusters,
-        curve_file=filename,
-        grid=grid
+        grid=grid,
+        paths=paths
     )
 
-    visualizer.visualize_vector_fields(resolution=5)
+    # visualizer.visualize_vector_fields(resolution=5)
+    visualizer.visualize_curves()
 
 
 if __name__ == "__main__":
