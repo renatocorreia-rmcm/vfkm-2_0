@@ -108,12 +108,20 @@ def load_curves(filename: str) -> tuple[list[PolygonalPath], dict[str, float]]:
 import os
 
 
-def save_experiment(directory: str, current_file_loaded: str, root_cluster: Cluster):
-    # todo: include file with data for init visualizer
+def save_experiment(
+        directory: str,
+        current_file_loaded: str,
+        root_cluster: Cluster,
+):
     # Create experiment file
     experiment_path = os.path.join(directory, "experiment.txt")
     with open(experiment_path, "w") as experiment_file:
+
+        # data set used
         experiment_file.write(current_file_loaded + "\n")
+
+        # amount of clusters
+        experiment_file.write(f"{len(root_cluster.children)}\n")
 
         # Initialize queue using a list
         nodes_to_process = [root_cluster]

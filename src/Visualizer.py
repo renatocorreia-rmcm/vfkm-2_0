@@ -26,6 +26,7 @@ from src.Grid import Grid
 import matplotlib
 
 from src.PolygonalPath2D import PolygonalPath2D
+from src.main import load_curves
 
 matplotlib.use('Qt5Agg')  # or 'QtAgg', 'Qt5Agg', et
 from matplotlib import pyplot as plt
@@ -35,42 +36,51 @@ from matplotlib import pyplot as plt
 
 class Visualizer:  # todo: make read file to avoid re-runig VFKM just for visualization
 
-    grid: Grid  # todo: bounding box and resolution - use raw parameters or re-create grid inside this object
-
-    clusters: list[Cluster]
-
     paths: np.ndarray[PolygonalPath2D]
 
+    amount_clusters: int
+
+    grid: Grid  # todo: bounding box and resolution - use raw parameters or re-create grid inside this object
 
 
-    def __init__(self, clusters: list[Cluster], paths: list[PolygonalPath2D], grid: Grid):
+    def __init__(
+            self
+    ):
 
-        self.clusters = clusters
-        self.grid = grid
+        with open("output/experiment.txt", 'r') as experiment:
+            self.paths, bounding_box = load_curves(experiment.readline())
+            self.amount_clusters = int(experiment.readline().strip())
 
-        self.paths = np.array(paths, dtype=PolygonalPath2D)
+        with open("output/vf_r.txt", 'r') as vf:
+            self.grid = Grid(
+                bounding_box=bounding_box,
+                resolution=int(vf.readline())**0.5
+            )
 
-    def visualize_vector_fields(self, resolution: int) -> None:
-        for i, cluster in enumerate(self.clusters):
+
+
+    def visualize_vector_fields(self, resolution: tuple[int, int]) -> None:
+        for i_cluster in range(self.amount_clusters):
 
             # --- Create a new figure for each cluster ---
             plt.figure(figsize=(8, 8))
-            plt.title(f"Vector Field {i}")
+            plt.title(f"Vector Field {i_cluster}")
 
             # --- Interpolated (fine) grid ---
-            U: np.ndarray[float] = np.zeros(shape=resolution * resolution, dtype=float)
-            V: np.ndarray[float] = np.zeros(shape=resolution * resolution, dtype=float)
+            U: np.ndarray[float] = np.zeros(shape=resolution * resolution[0], dtype=float)
+            V: np.ndarray[float] = np.zeros(shape=resolution * resolution[1], dtype=float)
 
             x = np.arange(0, resolution, 1)
             y = np.arange(0, resolution, 1)
             X, Y = np.meshgrid(x, y)
 
-            for line in range(resolution):
-                for col in range(resolution):
-                    index = line * resolution + col
-                    relative_coordinates: np.ndarray[float] = np.array([line, col]) / resolution
-                    U[index], V[index] = cluster.get_vector(relative_coordinates=relative_coordinates, grid=self.grid)[
-                        0]
+            for line in range(resolution[1]):
+                for col in range(resolution[0]):
+                    index: int = line * resolution[0] + col
+
+                    relative_coordinates: np.ndarray[float] = np.array([line, col]) / np.array(resolution)
+
+                    U[index], V[index] = cluster.get_vector(relative_coordinates=relative_coordinates, grid=self.grid)[0]  # TODO: HOW TO INTERPOLATE
 
             plt.quiver(X, Y, U, V, label='Interpolation')
 
