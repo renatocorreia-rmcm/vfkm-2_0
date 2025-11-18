@@ -1,33 +1,26 @@
 import numpy as np
 
-import sys  # to get args
-import os
-
-
 from Cluster import Cluster
 from Grid import Grid
 from Point2D import Point2D
 from PolygonalPath2D import PolygonalPath2D
 
+
+import sys
 from math import inf
 
 from PolygonalPath2D import PolygonalPath2D as PolygonalPath
 from VFKM import VFKM
 from VectorField2D import VectorField2D
+from src.Visualizer import Visualizer
 
-from visualizer import visualize_vector_field
 
-
-# todo: correct numpy typing float -> np.int64
-
-def load_curves(
-        filename: str
-) -> tuple[list[PolygonalPath], dict[str, float]]:
+def load_curves(filename: str) -> tuple[list[PolygonalPath], dict[str, float]]:
     """
     params:
         filename: str - path to input file
     returns:
-        number of curves read: int
+        polygonalpaths
         bounding box: dict with keys x_min, x_max, y_min, y_max,
     """
 
@@ -112,14 +105,11 @@ def load_curves(
     return paths, bounding_box
 
 
+import os
 
 
-def save_experiment(
-        directory: str,
-        current_file_loaded: str,
-        root_cluster: Cluster
-) -> None:
-
+def save_experiment(directory: str, current_file_loaded: str, root_cluster: Cluster):
+    # todo: include file with data for init visualizer
     # Create experiment file
     experiment_path = os.path.join(directory, "experiment.txt")
     with open(experiment_path, "w") as experiment_file:
@@ -167,7 +157,9 @@ def save_experiment(
                 map_cluster_path[child] = child_name
 
                 experiment_file.write(f"{cluster_name} {child_name}\n")
-                nodes_to_process.append(child)
+                nodes_to_process.append(child)  # include file with data for initialize
+
+
 
 
 def init_experiment(
@@ -190,7 +182,7 @@ def init_experiment(
 
     # Initialize root cluster
     root_cluster = Cluster(
-        name=str(len(paths)),
+        name = str(len(paths)),
         vector_field=VectorField2D([
         np.zeros(shape=g.resolution_x*g.resolution_y),
         np.zeros(shape=g.resolution_x * g.resolution_y)
@@ -268,12 +260,14 @@ def main():
         root_cluster=root_cluster  # first cluster is root
     )
 
-    print("PLOTTING")
-    for cluster in clusters:
-        visualize_vector_field(vector_field=cluster.vector_field, grid=grid)
+    visualizer = Visualizer(
+        clusters=clusters,
+        grid=grid,
+        paths=paths
+    )
 
-
-
+    # visualizer.visualize_vector_fields(resolution=5)
+    visualizer.visualize_curves()
 
 
 if __name__ == "__main__":
