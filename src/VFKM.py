@@ -1,4 +1,5 @@
 """"""
+from random import choice
 
 import numpy as np
 
@@ -107,7 +108,7 @@ class VFKM:
         curve_descriptions, total_curve_length = set_constraints(paths, grid)
 
         # FIRST ASSIGNMENT
-        clusters: list[Cluster] = compute_first_assignment(
+        clusters: list[Cluster] = compute_first_assignment_by_error(
             grid=grid,
             number_of_vector_fields=number_of_vector_fields,
             curves=curve_descriptions,
@@ -236,7 +237,7 @@ def cg_solve(
     return x, exit_code
 
 
-def compute_first_assignment(
+def compute_first_assignment_by_error(
         grid: Grid,
 
         number_of_vector_fields: int,
@@ -311,6 +312,51 @@ def compute_first_assignment(
         best_index: int = int(np.argmin(curve_errors))
 
         clusters[best_index].curves.append(curve)
+
+    return clusters
+
+
+
+def compute_first_assignment_by_random(
+        grid: Grid,
+
+        number_of_vector_fields: int,
+        curves: list[CurveDescription],
+
+        total_curve_length: float,
+        smoothness_weight: float
+) -> list[Cluster]:
+    """  # CREATE LIST OF CLUSTERS
+
+    Generate an initial clustering of curves
+        - For each vector field, pick the currently worst-fitted curve,
+        - Optimize a vector field for that single-curve seed,
+        - Then assign every curve to its best candidate among the generated vector fields.
+    """
+
+    num_vertices: int = grid.get_resolution_x() * grid.get_resolution_y()
+    # create the k clusters
+    clusters: list[Cluster] = [
+        Cluster(
+            vector_field=VectorField2D([
+                np.zeros(shape=num_vertices, dtype=float),
+                np.zeros(shape=num_vertices, dtype=float)
+            ])
+        ) for _ in range(number_of_vector_fields)
+    ]
+
+    # RANDOM ASSIGN
+    for curve in curves:
+        choice(clusters).curves.append(curve)
+
+    # FIT
+    optimize_all_clusters_vector_fields(
+        grid=grid,
+        clusters=clusters,
+        total_curve_length=total_curve_length,
+        smoothness_weight=smoothness_weight
+    )
+
 
     return clusters
 

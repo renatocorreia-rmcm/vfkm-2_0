@@ -27,7 +27,7 @@ import matplotlib
 
 from src.PolygonalPath2D import PolygonalPath2D
 
-matplotlib.use('Qt5Agg')  # or 'QtAgg', 'Qt5Agg', et
+#matplotlib.use('Qt5Agg')  # or 'QtAgg', 'Qt5Agg', et
 from matplotlib import pyplot as plt
 
 
