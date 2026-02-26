@@ -2,6 +2,7 @@ import numpy as np
 
 from Cluster import Cluster
 from Grid import Grid
+from Grid import CurveDescription
 from Point2D import Point2D
 from PolygonalPath2D import PolygonalPath2D
 
@@ -170,7 +171,7 @@ def init_experiment(
     paths, bounding_box = load_curves(filename)  # list[PolygonalPath2D], dict[str, float]
 
     # Initialize grid (square)
-    g: Grid = Grid(
+    grid: Grid = Grid(
         bounding_box=bounding_box,
         resolution=grid_resolution
     )
@@ -178,15 +179,13 @@ def init_experiment(
     # Initialize root cluster
     root_cluster = Cluster(
         name=str(len(paths)),
-        vector_field=VectorField2D([
-            np.zeros(shape=g.resolution_x * g.resolution_y),
-            np.zeros(shape=g.resolution_x * g.resolution_y)
-        ])
+        grid=grid
     )
 
-    # todo: solve: original implementation load errors as 0 and curves indices as all curves
+    root_cluster.curves = []  # set it here if needed
+    root_cluster.curve_errors = []
 
-    return paths, g, root_cluster
+    return paths, grid, root_cluster
 
 
 def main():
@@ -218,7 +217,7 @@ def main():
 
     # initialize parameters
     paths: list[PolygonalPath]
-    root_cluster: Cluster
+    root_cluster: Cluster  # until now, not accessed, just updated
     grid: Grid
 
     paths, grid, root_cluster = init_experiment(

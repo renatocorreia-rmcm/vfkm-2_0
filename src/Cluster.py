@@ -35,14 +35,13 @@ class Cluster:
 
     def __init__(
             self,
-            vector_field: Optional[VectorField2D],
+            grid: Grid,
             name: str = "",
             parent: Optional[Cluster] = None
     ):
         """
         :param name: f"{name of parent}:{amount of curves in this cluster}"
-        :param parent:
-        :param vector_field: The parent cluster of this cluster. Defaults to None for the root cluster
+        :param parent: The parent cluster of this cluster. Defaults to None for the root cluster
 
         """
 
@@ -51,7 +50,10 @@ class Cluster:
         self.parent = parent
         self.children = []
 
-        self.vector_field = vector_field
+        self.vector_field = VectorField2D([
+            np.zeros(shape=grid.resolution_x * grid.resolution_y),
+            np.zeros(shape=grid.resolution_x * grid.resolution_y)
+        ])
 
         self.curves = []
 

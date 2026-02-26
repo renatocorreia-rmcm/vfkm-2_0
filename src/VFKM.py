@@ -261,10 +261,7 @@ def compute_first_assignment_by_error(
     # create the k clusters
     clusters: list[Cluster] = [
         Cluster(
-            vector_field=VectorField2D([
-                np.zeros(shape=num_vertices, dtype=float),
-                np.zeros(shape=num_vertices, dtype=float)
-            ])
+            grid=grid
         ) for _ in range(number_of_vector_fields)
     ]
 
