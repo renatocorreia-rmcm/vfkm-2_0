@@ -270,5 +270,13 @@ def main():
     visualizer.visualize_curves()
 
 
+""" debug arguments: ../data/trajectories.txt 3 2 0.1 ../output/
+
+os endereços usados na modularização desse código 
+foram escritos para IDEs, como PyCharm, onde cada arquivo acessa o endereço importado a partir da root do projeto,
+e não editores de texto, como VScode, que acessam o endereço a partir do arquivo atual.
+
+rodar no VScode exige reescrever as importações em cada arquivo
+"""
 if __name__ == "__main__":
     main()
