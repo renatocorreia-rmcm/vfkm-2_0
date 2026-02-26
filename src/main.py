@@ -5,7 +5,6 @@ from Grid import Grid
 from Point2D import Point2D
 from PolygonalPath2D import PolygonalPath2D
 
-
 import sys
 from math import inf
 
@@ -17,12 +16,12 @@ from src.Visualizer import Visualizer
 
 def load_curves(filename: str) -> tuple[list[PolygonalPath], dict[str, float]]:
     """
-    params:
-        filename: str - path to input file
-    returns:
-        polygonalpaths
-        bounding box: dict with keys x_min, x_max, y_min, y_max,
-    """
+	params:
+		filename: str - path to input file
+	returns:
+		polygonalpaths
+		bounding box: dict with keys x_min, x_max, y_min, y_max,
+	"""
 
     print("LOADING CURVES")
 
@@ -39,7 +38,8 @@ def load_curves(filename: str) -> tuple[list[PolygonalPath], dict[str, float]]:
         if len(header) < 6:
             raise ValueError("Invalid bounding box line in input file")
 
-        bounding_box["x_min"], bounding_box["x_max"], bounding_box["y_min"], bounding_box["y_max"], bounding_box["t_min"], bounding_box["t_max"] = map(float, header)
+        bounding_box["x_min"], bounding_box["x_max"], bounding_box["y_min"], bounding_box["y_max"], bounding_box[
+            "t_min"], bounding_box["t_max"] = map(float, header)
 
         curve_contents: list[Point2D] = []
         real_index: int = 0
@@ -57,7 +57,7 @@ def load_curves(filename: str) -> tuple[list[PolygonalPath], dict[str, float]]:
                 real_index += 1
                 curve_contents.clear()
 
-            elif( # end of curve (implicit - Out of bounding box)
+            elif (  # end of curve (implicit - Out of bounding box)
                     x < bounding_box["x_min"] or x > bounding_box["x_max"] or
                     y < bounding_box["y_min"] or y > bounding_box["y_max"] or
                     t < bounding_box["t_min"] or t > bounding_box["t_max"]
@@ -75,15 +75,14 @@ def load_curves(filename: str) -> tuple[list[PolygonalPath], dict[str, float]]:
                 elif t == curve_contents[-1].time:  # repeated timestamp
                     continue
                 elif (  # do not move
-                    x == curve_contents[-1].space[0]
-                    and y == curve_contents[-1].space[1]
+                        x == curve_contents[-1].space[0]
+                        and y == curve_contents[-1].space[1]
                 ):
                     continue
                 else:  # regular point
                     curve_contents.append(new_point)
 
-
-    # Optional debug section
+    # DEBUG loading
     DEBUG = False
     if DEBUG:
         # Output read data to file
@@ -160,19 +159,15 @@ def save_experiment(directory: str, current_file_loaded: str, root_cluster: Clus
                 nodes_to_process.append(child)  # include file with data for initialize
 
 
-
-
 def init_experiment(
         filename: str,
         grid_resolution: int
 ) -> tuple[list[PolygonalPath2D], Grid, Cluster]:
     """
-    Initialize paths, grid , and rootcluster
-    """
+	Initialize paths, grid , and rootcluster
+	"""
 
-    bounding_box: dict[str, float]
-    paths: list[PolygonalPath2D]
-    paths, bounding_box = load_curves(filename)
+    paths, bounding_box = load_curves(filename)  # list[PolygonalPath2D], dict[str, float]
 
     # Initialize grid (square)
     g: Grid = Grid(
@@ -182,23 +177,23 @@ def init_experiment(
 
     # Initialize root cluster
     root_cluster = Cluster(
-        name = str(len(paths)),
+        name=str(len(paths)),
         vector_field=VectorField2D([
-        np.zeros(shape=g.resolution_x*g.resolution_y),
-        np.zeros(shape=g.resolution_x * g.resolution_y)
+            np.zeros(shape=g.resolution_x * g.resolution_y),
+            np.zeros(shape=g.resolution_x * g.resolution_y)
         ])
     )
 
-    #todo: solve: original implementation load errors as 0 and curves indices as all curves
+    # todo: solve: original implementation load errors as 0 and curves indices as all curves
 
     return paths, g, root_cluster
 
 
 def main():
     """
-    arguments:
-        trajectoryFile gridResolution numberOfVectorFields smoothnessWeight outputDirectory
-    """
+	arguments:
+		trajectoryFile gridResolution numberOfVectorFields smoothnessWeight outputDirectory
+	"""
 
     # check arguments
     right_number_of_parameters = 6
@@ -220,7 +215,6 @@ def main():
     print(f"number_of_vector_fields: {number_of_vector_fields}")
     print(f"smoothness_weight: {smoothness_weight}")
     print(f"output_directory: {output_directory}")
-
 
     # initialize parameters
     paths: list[PolygonalPath]

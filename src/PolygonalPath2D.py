@@ -10,7 +10,7 @@ class PolygonalPath2D:
     """
 	Represents a trajectory as a sequence of time-stamped 2D points
 
-    Non tesselated
+	Non tesselated
 	"""
 
     points: list[Point2D]
@@ -18,26 +18,15 @@ class PolygonalPath2D:
 
     def __init__(
             self,
-            points: Optional[list[Point2D]] = None,
-            tangents: Optional[list[Vector]] = None
+            points: list[Point2D],
     ):
         """
 		Args:
 			points: A list of PointNDs
-
-			tangents: An optional list of pre-calculated tangent vectors (NumPy arrays).
-			If None, they will be calculated automatically.
 		"""
 
-        if points is None:
-            points = []
-
         self.points = points.copy()
-
-        if tangents is None:
-            tangents = self._calculate_tangents()
-
-        self.tangents = tangents
+        self.tangents = self._calculate_tangents()
 
     def number_of_points(self) -> int:
         return len(self.points)

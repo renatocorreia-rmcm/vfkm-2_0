@@ -539,9 +539,11 @@ def repopulate_all_empty_cluster_by_random(  # todo: implement repopulate_all_em
 
         if len(cluster.curves) == 0:  # 'cluster' now is the empty one
 
+            print("repopulating empty cluster")
+
             # Reset vector field components to zero before refill
-            cluster.vector_field[0].set_values(0.0)
-            cluster.vector_field[1].set_values(0.0)
+            cluster.vector_field[0].fill(0.0)
+            cluster.vector_field[1].fill(0.0)
 
             len_clusters = [len(cluster.curves) for cluster in clusters]
             index_bigger = np.argmax(len_clusters)
