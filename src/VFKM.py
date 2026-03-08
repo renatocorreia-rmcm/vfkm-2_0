@@ -12,6 +12,7 @@ from Grid import Grid, CurveDescription
 from Cluster import Cluster
 from PolygonalPath2D import PolygonalPath2D
 from VectorField2D import VectorField2D
+from src.Visualizer import Visualizer
 
 
 class ProblemSettings:  # used only by MULTIPLY_BY_A
@@ -108,7 +109,7 @@ class VFKM:
         curve_descriptions, total_curve_length = set_constraints(paths, grid)
 
         # FIRST ASSIGNMENT
-        clusters: list[Cluster] = compute_first_assignment_by_error(
+        clusters: list[Cluster] = compute_first_assignment_by_random(
             grid=grid,
             number_of_vector_fields=number_of_vector_fields,
             curves=curve_descriptions,
@@ -122,6 +123,13 @@ class VFKM:
 
         for i in range(number_of_iterations):
             print(f"Before optimization: {total_error}")
+
+            visualizer = Visualizer(
+                clusters=clusters,
+                grid=grid,
+                paths=paths
+            )
+            visualizer.visualize_curves()
 
 
             """
@@ -334,10 +342,7 @@ def compute_first_assignment_by_random(
     # create the k clusters
     clusters: list[Cluster] = [
         Cluster(
-            vector_field=VectorField2D([
-                np.zeros(shape=num_vertices, dtype=float),
-                np.zeros(shape=num_vertices, dtype=float)
-            ])
+            grid=grid
         ) for _ in range(number_of_vector_fields)
     ]
 
@@ -485,6 +490,7 @@ def optimize_all_clusters_assignments(  # ASSIGN STEP
 
     for cluster in clusters:
         cluster.clear_curves()
+
 
     # for each cluster, check where its curves fit better
     for i_cluster, cluster in enumerate(clusters):

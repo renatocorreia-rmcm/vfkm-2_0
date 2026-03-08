@@ -261,7 +261,7 @@ def main():
     )
 
     # visualizer.visualize_vector_fields(resolution=5)
-    visualizer.visualize_curves()
+    #visualizer.visualize_curves()
 
 
 """ debug arguments: ../data/trajectories.txt 3 2 0.1 ../output/
