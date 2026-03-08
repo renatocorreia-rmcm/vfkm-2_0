@@ -120,7 +120,6 @@ class VFKM:
         number_of_iterations: int = 100
         total_error: float = float('inf')
 
-
         for i in range(number_of_iterations):
             print(f"Before optimization: {total_error}")
 
@@ -131,7 +130,7 @@ class VFKM:
             optimize_all_clusters_vector_fields(
                 grid=grid,
                 clusters=clusters,
-                total_curve_length=total_curve_length,
+                total_curve_length=total_curve_length,  # todo: IS THIS TOTAL_CURVE_LENGHT THE CORRECT ONE? COULD BE THE NORMALIZATION ERROR LEADING TO 1000/1000 DIVISION
                 smoothness_weight=smoothness_weight
             )
             total_error = get_total_error(
@@ -390,9 +389,8 @@ def set_constraints(
                 raise Exception("Line is broken, has backward time.")
 
         # Clip / tessellate the path to the grid
-        grid.clip_line(pp)
+        pp = grid.clip_line(pp)
 
-        # Verify tessellation didn't introduce non-monotonic times.
         # Verify tessellation didn't introduce non-monotonic times.
         for j in range(pp.number_of_points() - 1):
             if pp.get_point(j + 1).time < pp.get_point(j).time:
@@ -535,7 +533,6 @@ def repopulate_all_empty_cluster_by_random(  # todo: implement repopulate_all_em
     for cluster in clusters:
 
         if len(cluster.curves) == 0:  # 'cluster' now is the empty one
-
             print("repopulating empty cluster")
 
             # Reset vector field components to zero before refill

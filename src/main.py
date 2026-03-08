@@ -217,7 +217,7 @@ def main():
 
     # initialize parameters
     paths: list[PolygonalPath]
-    root_cluster: Cluster  # until now, not accessed, just updated
+    root_cluster: Cluster  # until now, is not being accessed, just updated
     grid: Grid
 
     paths, grid, root_cluster = init_experiment(
@@ -234,6 +234,7 @@ def main():
 
     # OPTIMIZE
     print("Optimizing...")
+
     # initialize current cluster
     current_cluster = root_cluster
 

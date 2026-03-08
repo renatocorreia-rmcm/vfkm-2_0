@@ -99,7 +99,7 @@ class Cluster:
         # load values into independent terms
         for curve in self.curves:  # for each curve
             for segment in curve.segments:  # for each segment in curve
-                k_factor: float = (1.0 - smoothness_weight) * (segment.timestamps[1] - segment.timestamps[0]) / total_curve_length  # weighting factor
+                k_factor: float = (1.0 - smoothness_weight) * (segment.timestamps[1] - segment.timestamps[0]) / total_curve_length
                 # Sum contributions into the RHS vectors.
                 segment.add_cTx(indepx, curve.rhsx, k_factor)
                 segment.add_cTx(indepy, curve.rhsy, k_factor)

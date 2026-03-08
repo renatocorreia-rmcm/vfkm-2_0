@@ -63,7 +63,7 @@ class Segment:
         if endpoints is None:
             endpoints = np.array([PointLocation(), PointLocation()])
         if timestamps is None:
-            timestamps = np.array([0.0, 00.0])
+            timestamps = np.array([0.0, 0.0])
 
         self.endpoints = endpoints
         self.timestamps = timestamps
@@ -99,7 +99,7 @@ class Segment:
         summand[self.index] += v1
         summand[self.index + 1] += v2
 
-    def add_cTx(self, resulting_field: np.ndarray[float], v: np.ndarray[float], w: float=1.0) -> None:
+    def add_cTx(self, resulting_field: np.ndarray[float], v: np.ndarray[float], w: float) -> None:
         """
         C^T * v
         Scattering
