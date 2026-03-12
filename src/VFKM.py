@@ -217,7 +217,7 @@ def compute_error_implicit(
     return error * (1.0 - smoothness_weight) / total_curve_length
 
 
-def cg_solve(
+def cg_solve_old(
         problem: ProblemSettings,
         b: np.ndarray[float],
         x0: np.ndarray[float]  # initial guess
@@ -242,6 +242,74 @@ def cg_solve(
     x, exit_code = cg(A=linear_operator_A, b=b, x0=x0)
 
     return x, exit_code
+
+def cg_solve(
+        problem: ProblemSettings,
+        b: np.ndarray[float],
+        x0: np.ndarray[float]  # initial guess
+) -> np.ndarray:
+    """
+	    translation of original manual method
+	"""
+    max_iter: int = 1000
+    tol: float = 1e-8
+    resid: float
+
+    normb: float = np.linalg.norm(b)
+    r: np.ndarray[float] = np.zeros(shape=x0.shape)
+    z: np.ndarray[float] = np.zeros(shape=x0.shape)
+    q: np.ndarray[float] = np.zeros(shape=x0.shape)
+    p: np.ndarray[float] = np.zeros(shape=x0.shape)
+
+    alpha: float
+    beta: float
+    rho: float = 1
+    rho_1: float = 1
+
+    t: np.ndarray[float] = VFKM.multiply_by_A(x0, problem)
+
+    r = b.copy()
+    r -= t
+
+    if normb == 0.0:
+        normb = 1.0
+
+    resid = np.linalg.norm(r) / normb
+
+    if resid <= tol:
+        tol = resid
+        max_iter = 0
+
+    for i in range(1, max_iter + 1):
+        z = r.copy()
+        rho = np.dot(r, z)
+
+        if i==1:
+            p = z.copy()
+        else:
+            beta = rho / rho_1
+            p = p*beta + z*1
+
+        q = VFKM.multiply_by_A(p, problem)
+
+        alpha = rho / np.dot(p, q)
+        x0 += alpha * p
+        r -= alpha * q
+
+        resid = np.linalg.norm(r) / normb
+
+        if resid <= tol:
+            tol = resid
+            max_iter = i
+            break
+
+        rho_1 = rho
+    return x0
+
+
+
+
+
 
 
 def compute_first_assignment_by_error(

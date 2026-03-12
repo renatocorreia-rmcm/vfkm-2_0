@@ -417,6 +417,8 @@ class Grid:
 				coef /= 2.0
 
 				accum1 += coef * first_component[neigh_index]
+
+
 				degree += coef
 
 			# RIGHT
@@ -432,6 +434,7 @@ class Grid:
 				coef /= 2.0
 
 				accum1 += coef * first_component[neigh_index]
+
 				degree += coef
 
 			# DOWN
@@ -447,6 +450,7 @@ class Grid:
 				coef /= 2.0
 
 				accum1 += coef * first_component[neigh_index]
+
 				degree += coef
 
 			# UP
@@ -462,6 +466,7 @@ class Grid:
 				coef /= 2.0
 
 				accum1 += coef * first_component[neigh_index]
+
 				degree += coef
 
 			# update component

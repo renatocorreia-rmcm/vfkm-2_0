@@ -114,8 +114,8 @@ class Cluster:
         y0 = self.vector_field[1].copy()
 
         # solve linear system using Conjugate Gradient (cg_solve)
-        x, x_exit_code = cg_solve(problem, indepx, x0)
-        y, y_exit_code = cg_solve(problem, indepy, y0)
+        x = cg_solve(problem, indepx, x0)
+        y = cg_solve(problem, indepy, y0)
 
         # update previous vector field values
         self.vector_field[0][:] = x
