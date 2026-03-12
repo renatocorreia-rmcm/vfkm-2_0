@@ -109,7 +109,7 @@ class VFKM:
         curve_descriptions, total_curve_length = set_constraints(paths, grid)
 
         # FIRST ASSIGNMENT
-        clusters: list[Cluster] = compute_first_assignment_by_random(
+        clusters: list[Cluster] = compute_first_assignment_by_error(
             grid=grid,
             number_of_vector_fields=number_of_vector_fields,
             curves=curve_descriptions,
@@ -129,7 +129,6 @@ class VFKM:
                 grid=grid,
                 paths=paths
             )
-            visualizer.visualize_curves()
 
 
             """
@@ -174,6 +173,7 @@ class VFKM:
 
             if total_change == 0:  # convergence
                 print(f"Converged in {i} iterations.")
+                visualizer.visualize_curves()
                 return clusters
 
         print(f"iteration limit reached ({number_of_iterations} iterations).")

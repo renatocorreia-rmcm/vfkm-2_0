@@ -264,7 +264,7 @@ def main():
     #visualizer.visualize_curves()
 
 
-""" debug arguments: ../data/trajectories.txt 3 2 0.1 ../output/
+""" debug arguments: ../data/trajectories.txt 3 2 0.5 ../output/
 
 os endereços usados na modularização desse código 
 foram escritos para IDEs, como PyCharm, onde cada arquivo acessa o endereço importado a partir da root do projeto,
