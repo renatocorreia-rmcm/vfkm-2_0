@@ -117,6 +117,14 @@ class VFKM:
             smoothness_weight=smoothness_weight
         )
 
+        print("\nFIRST ASSIGNMENT\n")
+
+        for i, cluster in enumerate(clusters):
+            print(f"\n{i}\n")
+            for curve in cluster.curves:
+                print(curve.index)
+
+
         # --- Optimization Loop ---
         number_of_iterations: int = 100
         total_error: float = float('inf')
