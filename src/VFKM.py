@@ -117,12 +117,13 @@ class VFKM:
             smoothness_weight=smoothness_weight
         )
 
+        """
         print("\nFIRST ASSIGNMENT\n")
-
         for i, cluster in enumerate(clusters):
             print(f"\n{i}\n")
             for curve in cluster.curves:
                 print(curve.index)
+        """
 
 
         # --- Optimization Loop ---
@@ -132,12 +133,6 @@ class VFKM:
         for i in range(number_of_iterations):
             print(f"Before optimization: {total_error}")
 
-            visualizer = Visualizer(
-                clusters=clusters,
-                grid=grid,
-                paths=paths
-            )
-
 
             """
                 OPTMIZE
@@ -145,9 +140,21 @@ class VFKM:
             optimize_all_clusters_vector_fields(
                 grid=grid,
                 clusters=clusters,
-                total_curve_length=total_curve_length,  # todo: IS THIS TOTAL_CURVE_LENGHT THE CORRECT ONE? COULD BE THE NORMALIZATION ERROR LEADING TO 1000/1000 DIVISION
+                total_curve_length=total_curve_length,
                 smoothness_weight=smoothness_weight
             )
+
+            print("\nVECTOR FIELDS\n")
+            for j, cluster in enumerate(clusters):
+                print(f"\n\t{j}\n")
+                print("X")
+                for x in cluster.vector_field[0]:
+                    print(x)
+                print("\nY")
+                for Y in cluster.vector_field[1]:
+                    print(Y)
+
+
             total_error = get_total_error(
                 grid=grid,
                 clusters=clusters,
@@ -180,6 +187,13 @@ class VFKM:
             )
 
             if total_change == 0:  # convergence
+
+                visualizer = Visualizer(
+                    clusters=clusters,
+                    grid=grid,
+                    paths=paths
+                )
+
                 print(f"Converged in {i} iterations.")
                 visualizer.visualize_curves()
                 return clusters
