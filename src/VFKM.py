@@ -144,6 +144,9 @@ class VFKM:
                 smoothness_weight=smoothness_weight
             )
 
+
+            """ DEBUG VECOTR FIELDS
+            
             print("\nVECTOR FIELDS\n")
             for j, cluster in enumerate(clusters):
                 print(f"\n\t{j}\n")
@@ -153,7 +156,7 @@ class VFKM:
                 print("\nY")
                 for Y in cluster.vector_field[1]:
                     print(Y)
-
+            """
 
             total_error = get_total_error(
                 grid=grid,
@@ -351,6 +354,9 @@ def compute_first_assignment_by_error(
         - Then assign every curve to its best candidate among the generated vector fields.
     """
 
+    print("\nCOMPUTING FIRST ASSIGNMENT\n")
+
+
     # Initialize per-curve errors to infinite
     errors: list[float] = [float('inf')] * len(curves)
 
@@ -513,6 +519,7 @@ def optimize_all_clusters_vector_fields(
     , optimize the vector field parameters to minimize error.
     """
     for cluster in clusters:
+        print("\n STARTING VF OPTIMIZATION \n")
         cluster.optimize_vector_field(
             grid=grid,
             total_curve_length=total_curve_length,

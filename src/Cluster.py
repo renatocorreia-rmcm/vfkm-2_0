@@ -98,16 +98,42 @@ class Cluster:
 
         # load values into independent terms
         for curve in self.curves:  # for each curve
+            j=0
             for segment in curve.segments:  # for each segment in curve
+
+                # todo: SOLVE: Ks ARE DIFFERENT. SEEMS TO KEEP 1/2 PROPORTION
+
                 k_factor: float = (1.0 - smoothness_weight) * (segment.timestamps[1] - segment.timestamps[0]) / total_curve_length
+
+                k_cpp = (1.0 - smoothness_weight) * (curve.segments[j].timestamps[1] - curve.segments[j].timestamps[0]) / total_curve_length
+
+
                 # Sum contributions into the RHS vectors.
                 segment.add_cTx(indepx, curve.rhsx, k_factor)
                 segment.add_cTx(indepy, curve.rhsy, k_factor)
 
-        print()
+                print(f"k       {k_factor}")
+                print(f"kcpp    {k_cpp}")
+                print(f"c       {curve.index}")
+                print(f"segment {segment.index}")
+
+                print("\nINDEP X\n")
+                print(indepx)
+                print("\nINDEP Y\n")
+                print(indepy)
+
+                # todo: solve: indep[2] is always 0
+
+                input("\n\nINPUT ANYTHING TO CONTINUE\n\n")
+                j+=1
+
+        """ DEBUG RSH's
+        
+        print("\nINDEP X\n")
         print(indepx)
         print(indepy)
-        print()
+        print("\nINDEP Y\n")
+        """
 
         # import here to avoid circular import at module load time
         from VFKM import ProblemSettings, cg_solve

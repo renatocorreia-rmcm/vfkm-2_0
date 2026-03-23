@@ -17,7 +17,6 @@ from file - must normalize coordinate to grid
 
 """
 import numpy as np
-from dateutil.relativedelta import relativedelta
 from matplotlib.pyplot import legend
 
 from src.Cluster import Cluster

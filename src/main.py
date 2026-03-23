@@ -207,6 +207,7 @@ def main():
     smoothness_weight = float(sys.argv[4])
     output_directory = sys.argv[5]
 
+    """
     print("\n LOADED PARAMETERS \n")
 
     print(f"filename: {filename}")
@@ -214,6 +215,7 @@ def main():
     print(f"number_of_vector_fields: {number_of_vector_fields}")
     print(f"smoothness_weight: {smoothness_weight}")
     print(f"output_directory: {output_directory}")
+    """
 
     # initialize parameters
     paths: list[PolygonalPath]
@@ -225,12 +227,14 @@ def main():
         grid_resolution=grid_resolution
     )
 
+    """
     print("\n INITIALIZED PARAMETERS \n")
 
     print(f"Initialized {len(paths)} paths.")
     # print(paths)
     print(grid)
     print(root_cluster)
+    """
 
     # OPTIMIZE
     print("Optimizing...")
