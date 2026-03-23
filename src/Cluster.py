@@ -77,7 +77,7 @@ class Cluster:
         self.total_error = 0
         self.max_error = 0
 
-    def optimize_vector_field(
+    def optimize_vector_field(  # todo: to test: its not generating same output than original
             self,
             grid: Grid,
             smoothness_weight: float,
@@ -103,6 +103,11 @@ class Cluster:
                 # Sum contributions into the RHS vectors.
                 segment.add_cTx(indepx, curve.rhsx, k_factor)
                 segment.add_cTx(indepy, curve.rhsy, k_factor)
+
+        print()
+        print(indepx)
+        print(indepy)
+        print()
 
         # import here to avoid circular import at module load time
         from VFKM import ProblemSettings, cg_solve

@@ -137,7 +137,7 @@ class VFKM:
             """
                 OPTMIZE
             """
-            optimize_all_clusters_vector_fields(
+            optimize_all_clusters_vector_fields(  # todo: to test: its not generating same output than original. Is recieving same input ?
                 grid=grid,
                 clusters=clusters,
                 total_curve_length=total_curve_length,
