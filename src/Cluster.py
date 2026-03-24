@@ -98,20 +98,32 @@ class Cluster:
 
         # load values into independent terms
         for curve in self.curves:  # for each curve
-            j=0
             for segment in curve.segments:  # for each segment in curve
 
-                # todo: SOLVE: Ks ARE DIFFERENT. SEEMS TO KEEP 1/2 PROPORTION
+                k_factor: float = (((1.0 - smoothness_weight) * (segment.timestamps[1] - segment.timestamps[0])) / total_curve_length)
 
-                k_factor: float = (1.0 - smoothness_weight) * (segment.timestamps[1] - segment.timestamps[0]) / total_curve_length
 
-                k_cpp = (1.0 - smoothness_weight) * (curve.segments[j].timestamps[1] - curve.segments[j].timestamps[0]) / total_curve_length
+                """ DEBUG K_FACTOR
+
+                print("\nK_FACTOR\n")
+
+                print(f"smoothess_weight {smoothness_weight}")
+                print(f"time_1           {segment.timestamps[1]}")
+                print(f"time_0           {segment.timestamps[0]}")
+                print(f"total_curve_len  {total_curve_length}")
+
+
+
+                input("\n\nINPUT ANYTHING TO CONTINUE\n\n")
+                """
+                print(k_factor)
 
 
                 # Sum contributions into the RHS vectors.
                 segment.add_cTx(indepx, curve.rhsx, k_factor)
                 segment.add_cTx(indepy, curve.rhsy, k_factor)
 
+                """
                 print(f"k       {k_factor}")
                 print(f"kcpp    {k_cpp}")
                 print(f"c       {curve.index}")
@@ -124,10 +136,11 @@ class Cluster:
 
                 # todo: solve: indep[2] is always 0
 
-                input("\n\nINPUT ANYTHING TO CONTINUE\n\n")
-                j+=1
+                #input("\n\nINPUT ANYTHING TO CONTINUE\n\n")
+                
+                """
 
-        """ DEBUG RSH's
+        """ DEBUG RSH's  # todo: solve diference
         
         print("\nINDEP X\n")
         print(indepx)
