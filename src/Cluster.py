@@ -93,8 +93,8 @@ class Cluster:
         number_of_vertices: int = grid.get_resolution_x() * grid.get_resolution_y()
 
         # independent terms //  rhs terms //  b_x, b_y
-        indepx = np.zeros(number_of_vertices, dtype=float)
-        indepy = np.zeros(number_of_vertices, dtype=float)
+        indepx = np.zeros(shape=number_of_vertices, dtype=float)
+        indepy = np.zeros(shape=number_of_vertices, dtype=float)
 
         # load values into independent terms
         for curve in self.curves:  # for each curve
@@ -114,12 +114,12 @@ class Cluster:
 
 
 
+                print(k_factor)
                 input("\n\nINPUT ANYTHING TO CONTINUE\n\n")
                 """
-                print(k_factor)
 
 
-                # Sum contributions into the RHS vectors.
+                # Sum contributions into the RHS vectors.  # todo: debug - difference seems to appears here
                 segment.add_cTx(indepx, curve.rhsx, k_factor)
                 segment.add_cTx(indepy, curve.rhsy, k_factor)
 
