@@ -110,4 +110,4 @@ class Visualizer:  # todo: make read file to avoid re-runig VFKM just for visual
             # Optional: keep aspect ratio square
             plt.gca().set_aspect("equal", adjustable="box")
 
-            plt.savefig(f"plot{i}.png")
+            plt.savefig(f"../output/plot{i}.png")
