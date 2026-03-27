@@ -117,7 +117,7 @@ class Segment:
 
         v1 = v[self.index]
         v2 = v[self.index + 1]
-
+        """
         input("this is resulting field")
         print(resulting_field)
 
@@ -130,6 +130,7 @@ class Segment:
         print(self.endpoints[0].barycentric_cords)
         input("this is endpoint1 barcords")
         print(self.endpoints[1].barycentric_cords)
+        """
 
 
         resulting_field[self.endpoints[0].face.indices[0]] += w * v1 * self.endpoints[0].barycentric_cords[0] / 3.0

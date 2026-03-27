@@ -10,90 +10,90 @@ from PolygonalPath2D import PolygonalPath2D  # for Grid.clip_line()
 
 
 class CurveDescription:  # todo: it contain its index. No need to array of curve indices in functions arguments
-	"""
-	Array of Segments
+    """
+    Array of Segments
 
-	"""
+    """
 
-	segments: list[Segment]
-	index: int
-	length: float
-	# right hand side vectors
-	rhsx: np.ndarray[float]
-	rhsy: np.ndarray[float]
+    segments: list[Segment]
+    index: int
+    length: float
+    # right hand side vectors
+    rhsx: np.ndarray[float]
+    rhsy: np.ndarray[float]
 
-	def __init__(self, path: PolygonalPath2D, grid: Grid):
-		"""
-		Create a CurveDescription object (array of segments)  # notice how a segment is relative to its grid
-		from a PolygonalPath one (sequence of timestamped 2D points)
-		with respect to the given grid object parameters
+    def __init__(self, path: PolygonalPath2D, grid: Grid):
+        """
+        Create a CurveDescription object (array of segments)  # notice how a segment is relative to its grid
+        from a PolygonalPath one (sequence of timestamped 2D points)
+        with respect to the given grid object parameters
 
-		"""
+        """
 
-		self.segments = []
-		self.length = 0
-		self.rhsx = np.array([], dtype=float)  # Initialize as empty
-		self.rhsy = np.array([], dtype=float)
+        self.segments = []
+        self.length = 0
+        self.rhsx = np.array([], dtype=float)  # Initialize as empty
+        self.rhsy = np.array([], dtype=float)
 
-		number_of_points: int = path.number_of_points()
-		if number_of_points < 2:
-			return
+        number_of_points: int = path.number_of_points()
+        if number_of_points < 2:
+            return
 
-		self.rhsx = np.zeros(2 * (number_of_points - 1))
-		self.rhsy = np.zeros(2 * (number_of_points - 1))
+        self.rhsx = np.zeros(2 * (number_of_points - 1))
+        self.rhsy = np.zeros(2 * (number_of_points - 1))
 
-		for i in range(number_of_points - 1):
-			current_point: np.ndarray[float] = grid.to_grid(path.get_point(i).space)
-			next_point: np.ndarray[float] = grid.to_grid(path.get_point(i + 1).space)
-			mid_point: np.ndarray[float] = (current_point + next_point) * 0.5
+        for i in range(number_of_points - 1):
+            current_point: np.ndarray[float] = grid.to_grid(path.get_point(i).space)
+            next_point: np.ndarray[float] = grid.to_grid(path.get_point(i + 1).space)
+            mid_point: np.ndarray[float] = (current_point + next_point) * 0.5
 
-			desired_tangent: np.ndarray[float] = path.get_tangent(i)
+            desired_tangent: np.ndarray[float] = path.get_tangent(i)
 
-			location: PointLocation = PointLocation()
+            location: PointLocation = PointLocation()
 
-			location.barycentric_cords[0] = -1
-			location.barycentric_cords[1] = -1
-			location.barycentric_cords[2] = -1
+            location.barycentric_cords[0] = -1
+            location.barycentric_cords[1] = -1
+            location.barycentric_cords[2] = -1
 
-			location.face = grid.get_face_where_point_lies(mid_point)
+            location.face = grid.get_face_where_point_lies(mid_point)
 
-			segment: Segment = Segment()
+            segment: Segment = Segment()
 
-			segment.endpoints[0] = location
-			segment.endpoints[1] = location
+            segment.endpoints[0] = location
+            segment.endpoints[1] = location
 
-			grid.locate_point(segment.endpoints[0], current_point)
-			grid.locate_point(segment.endpoints[1], next_point)
+            grid.locate_point(segment.endpoints[0], current_point)
+            grid.locate_point(segment.endpoints[1], next_point)
 
-			segment.timestamps[0] = path.get_point(i).time
-			segment.timestamps[1] = path.get_point(i + 1).time
+            segment.timestamps[0] = path.get_point(i).time
+            segment.timestamps[1] = path.get_point(i + 1).time
 
-			segment.index = 2 * i
+            segment.index = 2 * i
 
-			self.length += (segment.timestamps[1] - segment.timestamps[0])
-			self.segments.append(segment)
+            self.length += (segment.timestamps[1] - segment.timestamps[0])
+            self.segments.append(segment)
 
-			self.rhsx[2 * i] = desired_tangent[0]
-			self.rhsx[2 * i + 1] = desired_tangent[0]
-			self.rhsy[2 * i] = desired_tangent[1]
-			self.rhsy[2 * i + 1] = desired_tangent[1]
+            self.rhsx[2 * i] = desired_tangent[0]
+            self.rhsx[2 * i + 1] = desired_tangent[0]
+            self.rhsy[2 * i] = desired_tangent[1]
+            self.rhsy[2 * i + 1] = desired_tangent[1]
 
-	def add_cTcx(self, result_x: np.ndarray[float], x: np.ndarray[float], k_global: float = 1):
-		"""
-		chains Segment.add_cx and Segment.add_cTx for each segment in this curve
-		"""
+    def add_cTcx(self, result_x: np.ndarray[float], x: np.ndarray[float], k_global: float = 1):
+        """
+        chains Segment.add_cx and Segment.add_cTx for each segment in this curve
+        """
 
-		v: np.ndarray[float] = np.zeros(
-			2 * len(self.segments))  # the "summand" parameter for add_cx and add_cTx methods
+        v: np.ndarray[float] = np.zeros(
+            2 * len(self.segments))  # the "summand" parameter for add_cx and add_cTx methods
 
-		for segment in self.segments:  # for each segment in curve
+        for segment in self.segments:  # for each segment in curve
 
-			k = k_global * (segment.timestamps[1] - segment.timestamps[
-				0])  # segment-specific weight  # the time interval (duration) of the segment scaled by a global constant.
+            k = k_global * (segment.timestamps[1] - segment.timestamps[
+                0])  # segment-specific weight  # the time interval (duration) of the segment scaled by a global constant.
 
-			segment.add_cx(v, x)  # calculate C*x for this segment and store it in 'v'.
-			segment.add_cTx(result_x, v,
-			                k)  # calculate C^T * (the result from step 1) and add it to the final result vector
+            segment.add_cx(v, x)  # calculate C*x for this segment and store it in 'v'.
+            segment.add_cTx(result_x, v,
+                            k)  # calculate C^T * (the result from step 1) and add it to the final result vector
 
 
 """
@@ -102,598 +102,604 @@ class CurveDescription:  # todo: it contain its index. No need to array of curve
 
 
 class Grid:
-	#  number of vertices along the axis
-	resolution_x: int
-	resolution_y: int
-
-	#  bottom left coordinate of grid
-	x: float
-	y: float
-
-	#  total width and height of grid
-	w: float
-	h: float
-
-	#  distance between adjacent grid vertices
-	delta_x: float
-	delta_y: float
-
-	def __init__(self, bounding_box: dict[str, float], resolution: int):
-
-		# square grid
-		self.resolution_x = self.resolution_y = resolution
-
-		self.x = bounding_box["x_min"]
-		self.y = bounding_box["y_min"]
-		self.w = bounding_box["x_max"] - bounding_box["x_min"]
-		self.h = bounding_box["y_max"] - bounding_box["y_min"]
-
-		# escalas   (cord. grid) / (cord. mundo real)
-		self.delta_x = self.w / (self.resolution_x - 1)
-		self.delta_y = self.h / (self.resolution_y - 1)
-
-	def get_vertex_index(self, x: int, y: int) -> int:
-		"""
-			get linear index based on (x, y) coordinate
-		"""
-		return y * self.resolution_x + x
-
-	def get_face_where_point_lies(self, v: np.ndarray[float]) -> TriangularFace:
-		"""
-			REQUIRES POINT IN GRID COORDINATE SYSTEM
-
-			create and return a new `face` object with the respective properties
-		"""
-		if (  # coordinates out of range
-				(v[0] < 0 or v[0] > (self.resolution_x - 1.0))
-				or
-				(v[1] < 0 or v[1] > (self.resolution_y - 1.0))
-		):
-			raise ValueError(f"Point out of grid bounds: {v}")
-
-		face: TriangularFace = TriangularFace()  # todo: rewrite to to avoid creating NULL object
-
-		# square cells indices
-		square_x: int = int(v[0])
-		square_y: int = int(v[1])
-		# floating cord inside square cell
-		fx: float = v[0] - square_x
-		fy: float = v[1] - square_y
-
-		if fx > fy:  # bottom triangle
-			face.indices = np.array([  # counter clock wise order
-				self.get_vertex_index(square_x, square_y),
-				self.get_vertex_index(square_x + 1, square_y),
-				self.get_vertex_index(square_x + 1, square_y + 1)
-			])
-
-		else:  # top triangle
-			face.indices = np.array([  # counter clock wise order
-				self.get_vertex_index(square_x, square_y),
-				self.get_vertex_index(square_x + 1, square_y + 1),
-				self.get_vertex_index(square_x, square_y + 1)
-			])
-
-		return face
-
-	# resolution getters
-	def get_resolution_x(self) -> int:
-		return self.resolution_x
-
-	def get_resolution_y(self) -> int:
-		return self.resolution_y
-
-	# coordinate converters
-	def to_grid(self, world_point: np.ndarray[float]) -> np.ndarray[float]:
-		"""
-		convert geographic ("world") coordinates into grid coordinates
-		"""
-		return np.array([
-			(world_point[0] - self.x) / self.w * (self.resolution_x - 1.0),
-			(world_point[1] - self.y) / self.h * (self.resolution_y - 1.0)
-		])
-
-	def to_world(self, grid_point: np.ndarray[float]) -> np.ndarray[float]:
-		"""
-		convert grid coordinates into geographic ("world") coordinates
-
-		"""
-		return np.array([
-			grid_point[0] / (self.resolution_x - 1.0) * self.w + self.x,
-			grid_point[1] / (self.resolution_y - 1.0) * self.h + self.y
-		])
-
-	def get_grid_vertex(self, index: int) -> np.ndarray[int]:
-		"""
-		take linear index, return correspondent (x, y) coordinates
-		"""
-		return np.array([
-			index % self.resolution_x,
-			index // self.resolution_x
-		])
-
-	def locate_point(self, point_loc: PointLocation, point_coordinates: np.ndarray[
-		float]) -> None:  # todo: re-write to return instead of reference passing
-		"""
-		Calculates the barycentric coordinates of a point within a triangular face.
-
-		If face is fixed, set only barycentric coordinates within face.
-		"""
-
-		# Retrieve the three vertices of the triangular face
-		vertices: tuple[np.ndarray, np.ndarray, np.ndarray] = (
-			self.get_grid_vertex(point_loc.face.indices[0]),
-			self.get_grid_vertex(point_loc.face.indices[1]),
-			self.get_grid_vertex(point_loc.face.indices[2])
-		)
-
-		# det tells triangle area
-		det: float = np.linalg.det(
-			np.array([
-				[vertices[0][0], vertices[1][0]],
-				[vertices[0][1], vertices[1][1]]
-			])
-		)
-
-		if det == 0:
-			# fallback: degenerate triangle (possible at grid borders).
-			# assign full weight to the first vertex to avoid crashing.
-			point_loc.barycentric_cords[0] = 1.0
-			point_loc.barycentric_cords[1] = 0.0
-			point_loc.barycentric_cords[2] = 0.0
-			return
-
-		# each barycentric coordinate is a ratio of the area of a sub-triangle to the area of the main triangle.
-
-		beta = (
-				       (vertices[0][0] - vertices[2][0]) * (point_coordinates[1] - vertices[2][1]) -
-				       (vertices[0][1] - vertices[2][1]) * (point_coordinates[0] - vertices[2][0])
-		       ) / det
-
-		gamma = (
-				        (vertices[1][0] - vertices[0][0]) * (point_coordinates[1] - vertices[0][1]) -
-				        (vertices[1][1] - vertices[0][1]) * (point_coordinates[0] - vertices[0][0])
-		        ) / det
-
-		alpha = 1.0 - gamma - beta
-
-		# store the results in the PointLocation object
-		point_loc.barycentric_cords[0] = alpha
-		point_loc.barycentric_cords[1] = beta
-		point_loc.barycentric_cords[2] = gamma
-
-	def multiply_by_laplacian(self, vector_field: VectorField2D) -> None:
-		"""
-		multiply both vector field components by the laplacian
-
-		"""
-
-		first_component: np.ndarray[float] = vector_field[0]
-		second_component: np.ndarray[float] = vector_field[1]
-
-		if (  # check dimensions
-				self.resolution_x * self.resolution_y != first_component.size or
-				self.resolution_x * self.resolution_y != second_component.size
-		):
-			print("Error while multiplying grid by vector. Incompatible dimensions.")
-			exit(1)
-
-		number_of_vectors: int = self.resolution_x * self.resolution_y
-
-		new_first_component: np.ndarray[float] = np.zeros(number_of_vectors)
-		new_second_component: np.ndarray[float] = np.zeros(number_of_vectors)
-
-		horizontal_cotangent_weight: float = self.delta_x / self.delta_y
-		vertical_cotangent_weight: float = self.delta_y / self.delta_x
-
-		for i in range(
-				number_of_vectors):  # number_of_vectors == numberOfVertices in the grid == resolution * resolution
-
-			row = i // self.resolution_x
-			col = i % self.resolution_x
-
-			# considering grid constraints
-			can_move_left: bool = col > 0
-			can_move_down: bool = row > 0
-			can_move_right: bool = col < self.resolution_x - 1
-			can_move_up: bool = row < self.resolution_y - 1
+    #  number of vertices along the axis
+    resolution_x: int
+    resolution_y: int
+
+    #  bottom left coordinate of grid
+    x: float
+    y: float
+
+    #  total width and height of grid
+    w: float
+    h: float
+
+    #  distance between adjacent grid vertices
+    delta_x: float
+    delta_y: float
+
+    def __init__(self, bounding_box: dict[str, float], resolution: int):
+
+        # square grid
+        self.resolution_x = self.resolution_y = resolution
+
+        self.x = bounding_box["x_min"]
+        self.y = bounding_box["y_min"]
+        self.w = bounding_box["x_max"] - bounding_box["x_min"]
+        self.h = bounding_box["y_max"] - bounding_box["y_min"]
+
+        # escalas   (cord. grid) / (cord. mundo real)
+        self.delta_x = self.w / (self.resolution_x - 1)
+        self.delta_y = self.h / (self.resolution_y - 1)
+
+    def get_vertex_index(self, x: int, y: int) -> int:
+        """
+            get linear index based on (x, y) coordinate
+        """
+        return y * self.resolution_x + x
+
+    def get_face_where_point_lies(self, v: np.ndarray[float]) -> TriangularFace:
+        """
+            REQUIRES POINT IN GRID COORDINATE SYSTEM
+
+            create and return a new `face` object with the respective properties
+        """
+        if (  # coordinates out of range
+                (v[0] < 0 or v[0] > (self.resolution_x - 1.0))
+                or
+                (v[1] < 0 or v[1] > (self.resolution_y - 1.0))
+        ):
+            raise ValueError(f"Point out of grid bounds: {v}")
+
+        face: TriangularFace = TriangularFace()  # todo: rewrite to to avoid creating NULL object
+
+        # square cells indices
+        square_x: int = int(v[0])
+        square_y: int = int(v[1])
+        # floating cord inside square cell
+        fx: float = v[0] - square_x
+        fy: float = v[1] - square_y
+
+        if fx > fy:  # bottom triangle
+            face.indices = np.array([  # counter clock wise order
+                self.get_vertex_index(square_x, square_y),
+                self.get_vertex_index(square_x + 1, square_y),
+                self.get_vertex_index(square_x + 1, square_y + 1)
+            ])
+
+        else:  # top triangle
+            face.indices = np.array([  # counter clock wise order
+                self.get_vertex_index(square_x, square_y),
+                self.get_vertex_index(square_x + 1, square_y + 1),
+                self.get_vertex_index(square_x, square_y + 1)
+            ])
+
+        return face
+
+    # resolution getters
+    def get_resolution_x(self) -> int:
+        return self.resolution_x
+
+    def get_resolution_y(self) -> int:
+        return self.resolution_y
+
+    # coordinate converters
+    def to_grid(self, world_point: np.ndarray[float]) -> np.ndarray[float]:
+        """
+        convert geographic ("world") coordinates into grid coordinates
+        """
+        return np.array([
+            (world_point[0] - self.x) / self.w * (self.resolution_x - 1.0),
+            (world_point[1] - self.y) / self.h * (self.resolution_y - 1.0)
+        ])
+
+    def to_world(self, grid_point: np.ndarray[float]) -> np.ndarray[float]:
+        """
+        convert grid coordinates into geographic ("world") coordinates
+
+        """
+        return np.array([
+            grid_point[0] / (self.resolution_x - 1.0) * self.w + self.x,
+            grid_point[1] / (self.resolution_y - 1.0) * self.h + self.y
+        ])
+
+    def get_grid_vertex(self, index: int) -> np.ndarray[int]:
+        """
+        take linear index, return correspondent (x, y) coordinates
+        """
+        return np.array([
+            index % self.resolution_x,
+            index // self.resolution_x
+        ])
+
+    def locate_point(self, point_loc: PointLocation, point_coordinates: np.ndarray[  # todo: CHECK
+        float]) -> None:  # todo: re-write to return instead of reference passing
+        """
+        Calculates the barycentric coordinates of a point within a triangular face.
+
+        If face is fixed, set only barycentric coordinates within face.
+        """
+
+        # Retrieve the three vertices of the triangular face
+        vertices: tuple[np.ndarray, np.ndarray, np.ndarray] = (
+            self.get_grid_vertex(point_loc.face.indices[0]),
+            self.get_grid_vertex(point_loc.face.indices[1]),
+            self.get_grid_vertex(point_loc.face.indices[2])
+        )
+
+        # det tells triangle area
+        """
+        det: float = np.linalg.det(
+            np.array([
+                [vertices[0][0], vertices[1][0]],
+                [vertices[0][1], vertices[1][1]]
+            ])
+        )
+        """
+        det: float = (vertices[1][0] - vertices[0][0]) * (vertices[2][1] - vertices[0][1]) - (vertices[1][1] - vertices[0][1]) * (vertices[2][0] - vertices[0][0])
+
+        if det == 0:
+            """
+            # fallback: degenerate triangle (possible at grid borders).
+            # assign full weight to the first vertex to avoid crashing.
+            point_loc.barycentric_cords[0] = 1.0
+            point_loc.barycentric_cords[1] = 0.0
+            point_loc.barycentric_cords[2] = 0.0
+            """
+            print("det==0")
+            exit(1)
+
+        # each barycentric coordinate is a ratio of the area of a sub-triangle to the area of the main triangle.
+
+        beta = (
+                       (vertices[0][0] - vertices[2][0]) * (point_coordinates[1] - vertices[2][1]) -
+                       (vertices[0][1] - vertices[2][1]) * (point_coordinates[0] - vertices[2][0])
+               ) / det
+
+        gamma = (
+                        (vertices[1][0] - vertices[0][0]) * (point_coordinates[1] - vertices[0][1]) -
+                        (vertices[1][1] - vertices[0][1]) * (point_coordinates[0] - vertices[0][0])
+                ) / det
+
+        alpha = 1.0 - gamma - beta
+
+        # store the results in the PointLocation object
+        point_loc.barycentric_cords[0] = alpha
+        point_loc.barycentric_cords[1] = beta
+        point_loc.barycentric_cords[2] = gamma
+
+    def multiply_by_laplacian(self, vector_field: VectorField2D) -> None:
+        """
+        multiply both vector field components by the laplacian
+
+        """
+
+        first_component: np.ndarray[float] = vector_field[0]
+        second_component: np.ndarray[float] = vector_field[1]
+
+        if (  # check dimensions
+                self.resolution_x * self.resolution_y != first_component.size or
+                self.resolution_x * self.resolution_y != second_component.size
+        ):
+            print("Error while multiplying grid by vector. Incompatible dimensions.")
+            exit(1)
+
+        number_of_vectors: int = self.resolution_x * self.resolution_y
+
+        new_first_component: np.ndarray[float] = np.zeros(number_of_vectors)
+        new_second_component: np.ndarray[float] = np.zeros(number_of_vectors)
+
+        horizontal_cotangent_weight: float = self.delta_x / self.delta_y
+        vertical_cotangent_weight: float = self.delta_y / self.delta_x
+
+        for i in range(
+                number_of_vectors):  # number_of_vectors == numberOfVertices in the grid == resolution * resolution
+
+            row = i // self.resolution_x
+            col = i % self.resolution_x
+
+            # considering grid constraints
+            can_move_left: bool = col > 0
+            can_move_down: bool = row > 0
+            can_move_right: bool = col < self.resolution_x - 1
+            can_move_up: bool = row < self.resolution_y - 1
+
+            degree = 0.0
+            accum1 = 0.0
+            accum2 = 0.0
+
+            # LEFT
+            if can_move_left:
+                neigh_index = i - 1
+                coef = 0.0
+
+                if can_move_up:
+                    coef += vertical_cotangent_weight
+                if can_move_down:
+                    coef += vertical_cotangent_weight
+
+                coef /= 2.0
+
+                accum1 += coef * first_component[neigh_index]
+                accum2 += coef * second_component[neigh_index]
+                degree += coef
+
+            # RIGHT
+            if can_move_right:
+                neigh_index = i + 1
+                coef = 0.0
 
-			degree = 0.0
-			accum1 = 0.0
-			accum2 = 0.0
+                if can_move_down:
+                    coef += vertical_cotangent_weight
+                if can_move_up:
+                    coef += vertical_cotangent_weight
 
-			# LEFT
-			if can_move_left:
-				neigh_index = i - 1
-				coef = 0.0
+                coef /= 2.0
+
+                accum1 += coef * first_component[neigh_index]
+                accum2 += coef * second_component[neigh_index]
+                degree += coef
 
-				if can_move_up:
-					coef += vertical_cotangent_weight
-				if can_move_down:
-					coef += vertical_cotangent_weight
-
-				coef /= 2.0
-
-				accum1 += coef * first_component[neigh_index]
-				accum2 += coef * second_component[neigh_index]
-				degree += coef
+            # DOWN
+            if can_move_down:
+                neigh_index = i - self.resolution_x
+                coef = 0.0
 
-			# RIGHT
-			if can_move_right:
-				neigh_index = i + 1
-				coef = 0.0
+                if can_move_left:
+                    coef += horizontal_cotangent_weight
+                if can_move_right:
+                    coef += horizontal_cotangent_weight
 
-				if can_move_down:
-					coef += vertical_cotangent_weight
-				if can_move_up:
-					coef += vertical_cotangent_weight
+                coef /= 2.0
 
-				coef /= 2.0
+                accum1 += coef * first_component[neigh_index]
+                accum2 += coef * second_component[neigh_index]
+                degree += coef
 
-				accum1 += coef * first_component[neigh_index]
-				accum2 += coef * second_component[neigh_index]
-				degree += coef
+            # UP
+            if can_move_up:
+                neigh_index = i + self.resolution_x
+                coef = 0.0
 
-			# DOWN
-			if can_move_down:
-				neigh_index = i - self.resolution_x
-				coef = 0.0
+                if can_move_left:
+                    coef += horizontal_cotangent_weight
+                if can_move_right:
+                    coef += horizontal_cotangent_weight
 
-				if can_move_left:
-					coef += horizontal_cotangent_weight
-				if can_move_right:
-					coef += horizontal_cotangent_weight
+                coef /= 2.0
 
-				coef /= 2.0
+                accum1 += coef * first_component[neigh_index]
+                accum2 += coef * second_component[neigh_index]
+                degree += coef
 
-				accum1 += coef * first_component[neigh_index]
-				accum2 += coef * second_component[neigh_index]
-				degree += coef
+            # update new components
+            new_first_component[i] = accum1 - degree * first_component[i]
+            new_second_component[i] = accum2 - degree * second_component[i]
 
-			# UP
-			if can_move_up:
-				neigh_index = i + self.resolution_x
-				coef = 0.0
+        # Update the field
+        first_component[:] = new_first_component
+        second_component[:] = new_second_component
 
-				if can_move_left:
-					coef += horizontal_cotangent_weight
-				if can_move_right:
-					coef += horizontal_cotangent_weight
+    def multiply_by_laplacian2(self, first_component: np.ndarray[float]) -> None:
+        """
+        multiply only one vector field component by the laplacian
 
-				coef /= 2.0
+        """
 
-				accum1 += coef * first_component[neigh_index]
-				accum2 += coef * second_component[neigh_index]
-				degree += coef
+        if self.resolution_x * self.resolution_y != first_component.size:
+            print("Error while multiplying grid by vector. Incompatible dimensions.")
+            exit(1)
 
-			# update new components
-			new_first_component[i] = accum1 - degree * first_component[i]
-			new_second_component[i] = accum2 - degree * second_component[i]
+        number_of_vectors = self.resolution_x * self.resolution_y
 
-		# Update the field
-		first_component[:] = new_first_component
-		second_component[:] = new_second_component
+        new_first_component = np.zeros(number_of_vectors)
 
-	def multiply_by_laplacian2(self, first_component: np.ndarray[float]) -> None:
-		"""
-		multiply only one vector field component by the laplacian
+        horizontal_cotangent_weight = self.delta_x / self.delta_y
+        vertical_cotangent_weight = self.delta_y / self.delta_x
 
-		"""
+        for i in range(number_of_vectors):
 
-		if self.resolution_x * self.resolution_y != first_component.size:
-			print("Error while multiplying grid by vector. Incompatible dimensions.")
-			exit(1)
+            row = i // self.resolution_x
+            col = i % self.resolution_x
 
-		number_of_vectors = self.resolution_x * self.resolution_y
+            can_move_left = col > 0
+            can_move_down = row > 0
+            can_move_right = col < self.resolution_x - 1
+            can_move_up = row < self.resolution_y - 1
 
-		new_first_component = np.zeros(number_of_vectors)
+            degree = 0.0
+            accum1 = 0.0
 
-		horizontal_cotangent_weight = self.delta_x / self.delta_y
-		vertical_cotangent_weight = self.delta_y / self.delta_x
+            # LEFT
+            if can_move_left:
+                neigh_index = i - 1
+                coef = 0.0
 
-		for i in range(number_of_vectors):
+                if can_move_up:
+                    coef += vertical_cotangent_weight
+                if can_move_down:
+                    coef += vertical_cotangent_weight
 
-			row = i // self.resolution_x
-			col = i % self.resolution_x
+                coef /= 2.0
 
-			can_move_left = col > 0
-			can_move_down = row > 0
-			can_move_right = col < self.resolution_x - 1
-			can_move_up = row < self.resolution_y - 1
+                accum1 += coef * first_component[neigh_index]
 
-			degree = 0.0
-			accum1 = 0.0
 
-			# LEFT
-			if can_move_left:
-				neigh_index = i - 1
-				coef = 0.0
+                degree += coef
 
-				if can_move_up:
-					coef += vertical_cotangent_weight
-				if can_move_down:
-					coef += vertical_cotangent_weight
+            # RIGHT
+            if can_move_right:
+                neigh_index = i + 1
+                coef = 0.0
 
-				coef /= 2.0
+                if can_move_down:
+                    coef += vertical_cotangent_weight
+                if can_move_up:
+                    coef += vertical_cotangent_weight
 
-				accum1 += coef * first_component[neigh_index]
+                coef /= 2.0
 
+                accum1 += coef * first_component[neigh_index]
 
-				degree += coef
+                degree += coef
 
-			# RIGHT
-			if can_move_right:
-				neigh_index = i + 1
-				coef = 0.0
+            # DOWN
+            if can_move_down:
+                neigh_index = i - self.resolution_x
+                coef = 0.0
 
-				if can_move_down:
-					coef += vertical_cotangent_weight
-				if can_move_up:
-					coef += vertical_cotangent_weight
+                if can_move_left:
+                    coef += horizontal_cotangent_weight
+                if can_move_right:
+                    coef += horizontal_cotangent_weight
 
-				coef /= 2.0
+                coef /= 2.0
 
-				accum1 += coef * first_component[neigh_index]
+                accum1 += coef * first_component[neigh_index]
 
-				degree += coef
+                degree += coef
 
-			# DOWN
-			if can_move_down:
-				neigh_index = i - self.resolution_x
-				coef = 0.0
+            # UP
+            if can_move_up:
+                neigh_index = i + self.resolution_x
+                coef = 0.0
 
-				if can_move_left:
-					coef += horizontal_cotangent_weight
-				if can_move_right:
-					coef += horizontal_cotangent_weight
+                if can_move_left:
+                    coef += horizontal_cotangent_weight
+                if can_move_right:
+                    coef += horizontal_cotangent_weight
 
-				coef /= 2.0
+                coef /= 2.0
 
-				accum1 += coef * first_component[neigh_index]
+                accum1 += coef * first_component[neigh_index]
 
-				degree += coef
+                degree += coef
 
-			# UP
-			if can_move_up:
-				neigh_index = i + self.resolution_x
-				coef = 0.0
+            # update component
+            new_first_component[i] = accum1 - degree * first_component[i]
 
-				if can_move_left:
-					coef += horizontal_cotangent_weight
-				if can_move_right:
-					coef += horizontal_cotangent_weight
+        # update original field in place
+        first_component[:] = new_first_component
 
-				coef /= 2.0
+    class Inter:
+        """
+        Intersection point.
 
-				accum1 += coef * first_component[neigh_index]
+        """
 
-				degree += coef
+        grid_point: np.ndarray[float]  # grid coordinate (world coordinate normalized to grid)
+        u: float  # barycentric coordinate along segment
 
-			# update component
-			new_first_component[i] = accum1 - degree * first_component[i]
+        kind: int  # "enum-like" constants inside the class
+        Vertical = 1
+        Horizontal = 2
+        Diagonal = 3
+        EndPoint = 4
 
-		# update original field in place
-		first_component[:] = new_first_component
+    def clip_against_horizontal_lines(self, g1: Grid.Inter, g2: Grid.Inter) -> list[Grid.Inter]:
+        """
+        Take endpoints of a segment and return a list of its intersections with horizontal grid lines.
+        (For each horizontal line between the endpoints, calculate intersection using linear interpolation.)
+        """
 
-	class Inter:
-		"""
-		Intersection point.
+        result = []  # list of intersections
 
-		"""
+        # segment is perfectly horizontal
+        if g1.grid_point[1] == g2.grid_point[1]:
+            return result  # parallel lines do not cross
 
-		grid_point: np.ndarray[float]  # grid coordinate (world coordinate normalized to grid)
-		u: float  # barycentric coordinate along segment
+        # inverse of slope = run / rise (safe, since rise != 0)
+        inv_slope = (g2.grid_point[0] - g1.grid_point[0]) / (g2.grid_point[1] - g1.grid_point[1])
 
-		kind: int  # "enum-like" constants inside the class
-		Vertical = 1
-		Horizontal = 2
-		Diagonal = 3
-		EndPoint = 4
+        # if inv_slope >= 0: normal case
+        if inv_slope >= 0:
+            y1, y2 = g1.grid_point[1], g2.grid_point[1]
 
-	def clip_against_horizontal_lines(self, g1: Grid.Inter, g2: Grid.Inter) -> list[Grid.Inter]:
-		"""
-		Take endpoints of a segment and return a list of its intersections with horizontal grid lines.
-		(For each horizontal line between the endpoints, calculate intersection using linear interpolation.)
-		"""
+            this_y = y1
+            next_y = int(this_y) + 1  # floor(this_y) + 1
 
-		result = []  # list of intersections
+            while next_y < y2:
+                u = (next_y - y1) / (y2 - y1)
 
-		# segment is perfectly horizontal
-		if g1.grid_point[1] == g2.grid_point[1]:
-			return result  # parallel lines do not cross
+                p: Grid.Inter = Grid.Inter()
 
-		# inverse of slope = run / rise (safe, since rise != 0)
-		inv_slope = (g2.grid_point[0] - g1.grid_point[0]) / (g2.grid_point[1] - g1.grid_point[1])
+                p.grid_point = (1 - u) * g1.grid_point + u * g2.grid_point  # linear interpolation
 
-		# if inv_slope >= 0: normal case
-		if inv_slope >= 0:
-			y1, y2 = g1.grid_point[1], g2.grid_point[1]
+                p.grid_point[1] = next_y  # force exact integer coordinate
+                p.u = u
+                p.kind = Grid.Inter.Horizontal
 
-			this_y = y1
-			next_y = int(this_y) + 1  # floor(this_y) + 1
+                result.append(p)
 
-			while next_y < y2:
-				u = (next_y - y1) / (y2 - y1)
+                this_y = next_y
+                next_y = this_y + 1
 
-				p: Grid.Inter = Grid.Inter()
+            return result
 
-				p.grid_point = (1 - u) * g1.grid_point + u * g2.grid_point  # linear interpolation
+        else:  # inv_slope < 0
+            # flip the grid vertically
+            t = self.get_resolution_y() - 1
 
-				p.grid_point[1] = next_y  # force exact integer coordinate
-				p.u = u
-				p.kind = Grid.Inter.Horizontal
+            reverse_g1 = Grid.Inter()
+            reverse_g2 = Grid.Inter()
 
-				result.append(p)
+            reverse_g1.grid_point = np.array([g1.grid_point[0], t - g1.grid_point[1]])
+            reverse_g2.grid_point = np.array([g2.grid_point[0], t - g2.grid_point[1]])
 
-				this_y = next_y
-				next_y = this_y + 1
+            reverse_g1.u = g1.u
+            reverse_g2.u = g2.u
 
-			return result
+            # compute with flipped inputs (recursive call)
+            reverse_result = self.clip_against_horizontal_lines(reverse_g1, reverse_g2)
 
-		else:  # inv_slope < 0
-			# flip the grid vertically
-			t = self.get_resolution_y() - 1
+            # unflip back
+            for p in reverse_result:
+                p.grid_point[1] = t - p.grid_point[1]
 
-			reverse_g1 = Grid.Inter()
-			reverse_g2 = Grid.Inter()
+            return reverse_result
 
-			reverse_g1.grid_point = np.array([g1.grid_point[0], t - g1.grid_point[1]])
-			reverse_g2.grid_point = np.array([g2.grid_point[0], t - g2.grid_point[1]])
+    def clip_against_vertical_lines(self, g1: Grid.Inter, g2: Grid.Inter) -> list[Grid.Inter]:
+        """
+        Flip coordinates so vertical lines become horizontal,
+        solve the problem using clip_against_horizontal_lines,
+        then transform back.
+        """
 
-			reverse_g1.u = g1.u
-			reverse_g2.u = g2.u
+        # flip coordinates (x <-> y)
+        flipped_g1 = Grid.Inter()
+        flipped_g2 = Grid.Inter()
 
-			# compute with flipped inputs (recursive call)
-			reverse_result = self.clip_against_horizontal_lines(reverse_g1, reverse_g2)
+        flipped_g1.grid_point = np.array([g1.grid_point[1], g1.grid_point[0]])
+        flipped_g2.grid_point = np.array([g2.grid_point[1], g2.grid_point[0]])
+        flipped_g1.u = g1.u
+        flipped_g2.u = g2.u
 
-			# unflip back
-			for p in reverse_result:
-				p.grid_point[1] = t - p.grid_point[1]
+        # compute flipped result using horizontal clipping
+        flipped_result = self.clip_against_horizontal_lines(flipped_g1, flipped_g2)
 
-			return reverse_result
+        # unflip and mark as vertical intersections
+        for p in flipped_result:
+            p.grid_point = np.array([p.grid_point[1], p.grid_point[0]])
+            p.kind = Grid.Inter.Vertical
 
-	def clip_against_vertical_lines(self, g1: Grid.Inter, g2: Grid.Inter) -> list[Grid.Inter]:
-		"""
-		Flip coordinates so vertical lines become horizontal,
-		solve the problem using clip_against_horizontal_lines,
-		then transform back.
-		"""
+        return flipped_result
 
-		# flip coordinates (x <-> y)
-		flipped_g1 = Grid.Inter()
-		flipped_g2 = Grid.Inter()
+    @staticmethod
+    def get_u_from_points(v1: np.ndarray[float], v2: np.ndarray[float], u: np.ndarray[float]) -> float:
+        """
+        "inverse" of lerp:
+        takes endpoints and a midpoint,
+        return barycentric coordinate of midpoint
+        """
 
-		flipped_g1.grid_point = np.array([g1.grid_point[1], g1.grid_point[0]])
-		flipped_g2.grid_point = np.array([g2.grid_point[1], g2.grid_point[0]])
-		flipped_g1.u = g1.u
-		flipped_g2.u = g2.u
+        if v2[0] != v1[0]:
+            return (u[0] - v1[0]) / (v2[0] - v1[0])
+        else:
+            return (u[1] - v1[1]) / (v2[1] - v1[1])
 
-		# compute flipped result using horizontal clipping
-		flipped_result = self.clip_against_horizontal_lines(flipped_g1, flipped_g2)
+    def clip_line(self, path1: PolygonalPath2D) -> PolygonalPath2D:  # todo: is reference passing actually working ?
+        """
+        This performs tessellation of 'path1' by finding all intersection points.
 
-		# unflip and mark as vertical intersections
-		for p in flipped_result:
-			p.grid_point = np.array([p.grid_point[1], p.grid_point[0]])
-			p.kind = Grid.Inter.Vertical
+        insert new vertices wherever the path intersects with a grid line
 
-		return flipped_result
+        divide path1 into his segments
+        then clipAgainstHorizontalLines and clipAgainstVerticalLines do the actual tesselation
+        """
 
-	@staticmethod
-	def get_u_from_points(v1: np.ndarray[float], v2: np.ndarray[float], u: np.ndarray[float]) -> float:
-		"""
-		"inverse" of lerp:
-		takes endpoints and a midpoint,
-		return barycentric coordinate of midpoint
-		"""
+        current_vertex_index = 0
 
-		if v2[0] != v1[0]:
-			return (u[0] - v1[0]) / (v2[0] - v1[0])
-		else:
-			return (u[1] - v1[1]) / (v2[1] - v1[1])
+        while current_vertex_index < path1.number_of_points() - 1:  # "for each vertex (segment)"
 
-	def clip_line(self, path1: PolygonalPath2D) -> PolygonalPath2D:  # todo: is reference passing actually working ?
-		"""
-		This performs tessellation of 'path1' by finding all intersection points.
+            # start point - position and time
+            from_pos, from_time = path1.get_point(current_vertex_index)
 
-		insert new vertices wherever the path intersects with a grid line
+            # end point - position and time
+            to_pos, to_time = path1.get_point(current_vertex_index + 1)
 
-		divide path1 into his segments
-		then clipAgainstHorizontalLines and clipAgainstVerticalLines do the actual tesselation
-		"""
+            # segment tangent
+            tangent = path1.get_tangent(current_vertex_index)
 
-		current_vertex_index = 0
+            inters: list[Grid.Inter] = []
 
-		while current_vertex_index < path1.number_of_points() - 1:  # "for each vertex (segment)"
+            # endpoints
+            e1 = self.Inter()
+            e2 = self.Inter()
 
-			# start point - position and time
-			from_pos, from_time = path1.get_point(current_vertex_index)
+            # Convert coordinates World -> Grid
+            e1.grid_point = self.to_grid(from_pos)
+            e2.grid_point = self.to_grid(to_pos)
 
-			# end point - position and time
-			to_pos, to_time = path1.get_point(current_vertex_index + 1)
+            # set barycentric cords
+            e1.u = 0.0  # start
+            e2.u = 1.0  # end
 
-			# segment tangent
-			tangent = path1.get_tangent(current_vertex_index)
+            # set kind
+            e1.kind = e2.kind = self.Inter.EndPoint
 
-			inters: list[Grid.Inter] = []
+            # append to intersections list
+            inters.append(e1)
 
-			# endpoints
-			e1 = self.Inter()
-			e2 = self.Inter()
+            # --- Horizontal intersections ---
 
-			# Convert coordinates World -> Grid
-			e1.grid_point = self.to_grid(from_pos)
-			e2.grid_point = self.to_grid(to_pos)
+            horiz = self.clip_against_horizontal_lines(e1, e2)
+            horiz.append(e2)
 
-			# set barycentric cords
-			e1.u = 0.0  # start
-			e2.u = 1.0  # end
+            for h in horiz:
 
-			# set kind
-			e1.kind = e2.kind = self.Inter.EndPoint
+                # --- Vertical intersections --- between last intersection and h
+                vert: list[Grid.Inter] = self.clip_against_vertical_lines(inters[-1], h)
 
-			# append to intersections list
-			inters.append(e1)
+                # Update u for each vertical intersection
+                for v in vert:
+                    v.u = Grid.get_u_from_points(e1.grid_point, e2.grid_point, v.grid_point)
 
-			# --- Horizontal intersections ---
+                inters.extend(vert)
+                inters.append(h)
 
-			horiz = self.clip_against_horizontal_lines(e1, e2)
-			horiz.append(e2)
+            # --- Resolve diagonal intersections ---
+            i = 0
+            while i < len(inters) - 1:
+                x_square = min(int(inters[i].grid_point[0]), int(inters[i + 1].grid_point[0]))
+                y_square = min(int(inters[i].grid_point[1]), int(inters[i + 1].grid_point[1]))
 
-			for h in horiz:
+                u1 = inters[i].grid_point[0] - x_square
+                v1 = inters[i].grid_point[1] - y_square
 
-				# --- Vertical intersections --- between last intersection and h
-				vert: list[Grid.Inter] = self.clip_against_vertical_lines(inters[-1], h)
+                u2 = inters[i + 1].grid_point[0] - x_square
+                v2 = inters[i + 1].grid_point[1] - y_square
 
-				# Update u for each vertical intersection
-				for v in vert:
-					v.u = Grid.get_u_from_points(e1.grid_point, e2.grid_point, v.grid_point)
+                du = u2 - u1
+                dv = v2 - v1
 
-				inters.extend(vert)
-				inters.append(h)
+                s1 = np.sign(u1 - v1)
+                s2 = np.sign(u2 - v2)
 
-			# --- Resolve diagonal intersections ---
-			i = 0
-			while i < len(inters) - 1:
-				x_square = min(int(inters[i].grid_point[0]), int(inters[i + 1].grid_point[0]))
-				y_square = min(int(inters[i].grid_point[1]), int(inters[i + 1].grid_point[1]))
+                # Check if signs differ -> diagonal intersection
+                if s1 != s2:
+                    # Solve system:
+                    # x = y = (v2 * du - u2 * dv) / (du - dv)
+                    x = (v2 * du - u2 * dv) / (du - dv)
+                    y = x
 
-				u1 = inters[i].grid_point[0] - x_square
-				v1 = inters[i].grid_point[1] - y_square
+                    new_inter = self.Inter()
+                    new_inter.grid_point = np.array([x_square + x, y_square + y])
+                    new_inter.u = self.get_u_from_points(e1.grid_point, e2.grid_point, new_inter.grid_point)
+                    new_inter.kind = self.Inter.Diagonal
 
-				u2 = inters[i + 1].grid_point[0] - x_square
-				v2 = inters[i + 1].grid_point[1] - y_square
+                    inters.insert(i + 1, new_inter)
+                    i += 1  # skip newly inserted point
+                i += 1
 
-				du = u2 - u1
-				dv = v2 - v1
+            # --- Insert intersection points into path ---
+            for i in range(1, len(inters) - 1):
+                world_point = self.to_world(inters[i].grid_point)
+                time_value = inters[i].u * to_time + (1 - inters[i].u) * from_time
 
-				s1 = np.sign(u1 - v1)
-				s2 = np.sign(u2 - v2)
+                path1.add_point(current_vertex_index + 1, Point2D((world_point, time_value)), tangent)
 
-				# Check if signs differ -> diagonal intersection
-				if s1 != s2:
-					# Solve system:
-					# x = y = (v2 * du - u2 * dv) / (du - dv)
-					x = (v2 * du - u2 * dv) / (du - dv)
-					y = x
+                current_vertex_index += 1
 
-					new_inter = self.Inter()
-					new_inter.grid_point = np.array([x_square + x, y_square + y])
-					new_inter.u = self.get_u_from_points(e1.grid_point, e2.grid_point, new_inter.grid_point)
-					new_inter.kind = self.Inter.Diagonal
+            current_vertex_index += 1
 
-					inters.insert(i + 1, new_inter)
-					i += 1  # skip newly inserted point
-				i += 1
-
-			# --- Insert intersection points into path ---
-			for i in range(1, len(inters) - 1):
-				world_point = self.to_world(inters[i].grid_point)
-				time_value = inters[i].u * to_time + (1 - inters[i].u) * from_time
-
-				path1.add_point(current_vertex_index + 1, Point2D((world_point, time_value)), tangent)
-
-				current_vertex_index += 1
-
-			current_vertex_index += 1
-
-		return path1
+        return path1

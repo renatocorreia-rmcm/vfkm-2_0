@@ -91,7 +91,7 @@ class Visualizer:  # todo: make read file to avoid re-runig VFKM just for visual
             plt.show()  # This will show one plot for each cluster, one by one
 
     def visualize_curves(self) -> None:
-        for cluster in self.clusters:
+        for i, cluster in enumerate(self.clusters):
             plt.figure(figsize=(8, 8))
             plt.title(f"Curves in Cluster {cluster.name}")
 
@@ -110,4 +110,4 @@ class Visualizer:  # todo: make read file to avoid re-runig VFKM just for visual
             # Optional: keep aspect ratio square
             plt.gca().set_aspect("equal", adjustable="box")
 
-            plt.show()
+            plt.savefig(f"plot{i}.png")
