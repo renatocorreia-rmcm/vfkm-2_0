@@ -1,32 +1,10 @@
-"""todo:
-
-create visualizer class
-object is like a ProblemSetting object
-
-main recieves bool for Visualize
-
-load np array of all polygonalpaths
-
-access outputfile by index
-
-this class uses:
-list of clusters - use VECTOR FIELD and CURVE (could get just the index to plot from input file - avoid reduntant aligned points from tesselation)
-
-from object - must compute position from barycentric coordinates
-from file - must normalize coordinate to grid
-
-"""
 import numpy as np
-from matplotlib.pyplot import legend
 
 from src.Cluster import Cluster
 from src.Grid import Grid
 
-import matplotlib
-
 from src.PolygonalPath2D import PolygonalPath2D
 
-#matplotlib.use('Qt5Agg')  # or 'QtAgg', 'Qt5Agg', et
 from matplotlib import pyplot as plt
 
 
@@ -88,7 +66,7 @@ class Visualizer:  # todo: make read file to avoid re-runig VFKM just for visual
             # It will automatically find the 'label's you defined.
             plt.legend()
 
-            plt.show()  # This will show one plot for each cluster, one by one
+            plt.savefig(f"../output/vf{i}.png")
 
     def visualize_curves(self) -> None:
         for i, cluster in enumerate(self.clusters):
@@ -110,4 +88,4 @@ class Visualizer:  # todo: make read file to avoid re-runig VFKM just for visual
             # Optional: keep aspect ratio square
             plt.gca().set_aspect("equal", adjustable="box")
 
-            plt.savefig(f"../output/plot{i}.png")
+            plt.savefig(f"../output/curves{i}.png")

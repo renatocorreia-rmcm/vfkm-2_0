@@ -2,7 +2,6 @@ import numpy as np
 
 from Cluster import Cluster
 from Grid import Grid
-from Grid import CurveDescription
 from Point2D import Point2D
 from PolygonalPath2D import PolygonalPath2D
 
@@ -11,7 +10,6 @@ from math import inf
 
 from PolygonalPath2D import PolygonalPath2D as PolygonalPath
 from VFKM import VFKM
-from VectorField2D import VectorField2D
 from src.Visualizer import Visualizer
 
 
@@ -23,8 +21,6 @@ def load_curves(filename: str) -> tuple[list[PolygonalPath], dict[str, float]]:
 		polygonalpaths
 		bounding box: dict with keys x_min, x_max, y_min, y_max,
 	"""
-
-    print("LOADING CURVES")
 
     paths: list[PolygonalPath] = []
 
@@ -82,25 +78,6 @@ def load_curves(filename: str) -> tuple[list[PolygonalPath], dict[str, float]]:
                     continue
                 else:  # regular point
                     curve_contents.append(new_point)
-
-    # DEBUG loading
-    DEBUG = False
-    if DEBUG:
-        # Output read data to file
-        with open("read_curves.txt", "w") as outfile:
-            outfile.write(
-                f"{bounding_box['x_min']} {bounding_box['x_max']} "
-                f"{bounding_box['y_min']} {bounding_box['y_max']} "
-                f"{bounding_box['t_min']} {bounding_box['t_max']}\n"
-            )
-
-            for path in paths:
-                for point in path.points:
-                    outfile.write(f"{point.space} {point.time}\n")
-                outfile.write("0 0 0\n")
-        print(f"numberOfPathsRead = {len(paths)}")
-        for i, path in enumerate(paths):
-            print(f"Path {i} \n {path}")
 
     return paths, bounding_box
 
@@ -207,16 +184,6 @@ def main():
     smoothness_weight = float(sys.argv[4])
     output_directory = sys.argv[5]
 
-    """
-    print("\n LOADED PARAMETERS \n")
-
-    print(f"filename: {filename}")
-    print(f"grid_resolution: {grid_resolution}")
-    print(f"number_of_vector_fields: {number_of_vector_fields}")
-    print(f"smoothness_weight: {smoothness_weight}")
-    print(f"output_directory: {output_directory}")
-    """
-
     # initialize parameters
     paths: list[PolygonalPath]
     root_cluster: Cluster  # until now, is not being accessed, just updated
@@ -226,15 +193,6 @@ def main():
         filename=filename,
         grid_resolution=grid_resolution
     )
-
-    """
-    print("\n INITIALIZED PARAMETERS \n")
-
-    print(f"Initialized {len(paths)} paths.")
-    # print(paths)
-    print(grid)
-    print(root_cluster)
-    """
 
     # OPTIMIZE
     print("Optimizing...")
@@ -258,14 +216,15 @@ def main():
         root_cluster=root_cluster  # first cluster is root
     )
 
+    """
     visualizer = Visualizer(
         clusters=clusters,
         grid=grid,
         paths=paths
     )
-
-    # visualizer.visualize_vector_fields(resolution=5)
-    #visualizer.visualize_curves()
+    visualizer.visualize_vector_fields(resolution=5)
+    visualizer.visualize_curves()
+    """
 
 
 """ debug arguments: ../data/synthetic.txt 3 2 0.05 ../output/

@@ -1,8 +1,5 @@
 import numpy as np
 
-Vector = np.ndarray  # in this class, will represent the space coordinates of some point
-
-
 class Point2D:  # todo: no need for tuple, use different attributes
     """
     2D space coordinate + float timestamp,
@@ -10,19 +7,19 @@ class Point2D:  # todo: no need for tuple, use different attributes
     theoretically is already a ND point since it takes a nd array of coordinates
     """
 
-    point2D: tuple[Vector, float]  # space coordinates, time
+    point2D: tuple[np.ndarray, float]  # space coordinates, time
 
 
     def __init__(
             self,
-            point2d: tuple[Vector, float]
+            point2d: tuple[np.ndarray, float]
     ):
         self.point2D = point2d
 
     @property
-    def space(self) -> Vector:
+    def space(self) -> np.ndarray:
         """
-        Get vector of space coordinates
+        Get np.ndarray of space coordinates
         for that point
 
         """

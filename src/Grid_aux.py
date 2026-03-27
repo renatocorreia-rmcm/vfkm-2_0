@@ -117,20 +117,6 @@ class Segment:
 
         v1 = v[self.index]
         v2 = v[self.index + 1]
-        """
-        input("this is resulting field")
-        print(resulting_field)
-
-        input("this is v1")
-        print(v1)
-        input("this is v2")
-        print(v2)
-
-        input("this is endpoint0 barcords")  # TODO: THESE BARCORDS ARE THE ONLYTHING WRONG HERE ! SOLVE: ARE ENDPOINTS EQUAL ? IF YES, THEN JUST SOLVE BARCORDS. OTHERWISE, SOLVE ENDPOINTS
-        print(self.endpoints[0].barycentric_cords)
-        input("this is endpoint1 barcords")
-        print(self.endpoints[1].barycentric_cords)
-        """
 
 
         resulting_field[self.endpoints[0].face.indices[0]] += w * v1 * self.endpoints[0].barycentric_cords[0] / 3.0

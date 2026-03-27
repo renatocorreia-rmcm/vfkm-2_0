@@ -3,9 +3,6 @@ from random import choice
 
 import numpy as np
 
-from scipy.sparse.linalg import cg  # conjugate gradient solver
-from scipy.sparse.linalg import LinearOperator  # class to incorporate original "multiplyByA()"
-
 from functools import partial
 
 from Grid import Grid, CurveDescription
@@ -117,14 +114,6 @@ class VFKM:
             smoothness_weight=smoothness_weight
         )
 
-        """
-        print("\nFIRST ASSIGNMENT\n")
-        for i, cluster in enumerate(clusters):
-            print(f"\n{i}\n")
-            for curve in cluster.curves:
-                print(curve.index)
-        """
-
 
         # --- Optimization Loop ---
         number_of_iterations: int = 100
@@ -137,26 +126,12 @@ class VFKM:
             """
                 OPTMIZE
             """
-            optimize_all_clusters_vector_fields(  # todo: to test: its not generating same output than original. Is recieving same input ?
+            optimize_all_clusters_vector_fields(
                 grid=grid,
                 clusters=clusters,
                 total_curve_length=total_curve_length,
                 smoothness_weight=smoothness_weight
             )
-
-
-            """ DEBUG VECOTR FIELDS
-            
-            print("\nVECTOR FIELDS\n")
-            for j, cluster in enumerate(clusters):
-                print(f"\n\t{j}\n")
-                print("X")
-                for x in cluster.vector_field[0]:
-                    print(x)
-                print("\nY")
-                for Y in cluster.vector_field[1]:
-                    print(Y)
-            """
 
             total_error = get_total_error(
                 grid=grid,
@@ -191,14 +166,16 @@ class VFKM:
 
             if total_change == 0:  # convergence
 
+                print(f"Converged in {i} iterations.")
+
                 visualizer = Visualizer(
                     clusters=clusters,
                     grid=grid,
                     paths=paths
                 )
-
-                print(f"Converged in {i} iterations.")
                 visualizer.visualize_curves()
+                visualizer.visualize_vector_fields(3)
+
                 return clusters
 
         print(f"iteration limit reached ({number_of_iterations} iterations).")
@@ -241,32 +218,6 @@ def compute_error_implicit(
 
     return error * (1.0 - smoothness_weight) / total_curve_length
 
-
-def cg_solve_old(
-        problem: ProblemSettings,
-        b: np.ndarray[float],
-        x0: np.ndarray[float]  # initial guess
-) -> tuple[np.ndarray, int]:
-    """
-    interface for scipy cg solver
-
-    return exit code
-    """
-
-    # SET SCIPY CG SOLVER PARAMETERS
-
-    shape_A = (
-        problem.grid.get_resolution_x() * problem.grid.get_resolution_y(),
-        problem.grid.get_resolution_x() * problem.grid.get_resolution_y()
-    )
-    matvec_A = partial(VFKM.multiply_by_A, problem=problem)  # pre-set 'problem' parameter
-    linear_operator_A = LinearOperator(shape=shape_A, matvec=matvec_A, dtype=float)
-
-    # CALL SCIPY CG SOLVER
-
-    x, exit_code = cg(A=linear_operator_A, b=b, x0=x0)
-
-    return x, exit_code
 
 def cg_solve(
         problem: ProblemSettings,
@@ -354,9 +305,6 @@ def compute_first_assignment_by_error(
         - Then assign every curve to its best candidate among the generated vector fields.
     """
 
-    print("\nCOMPUTING FIRST ASSIGNMENT\n")
-
-
     # Initialize per-curve errors to infinite
     errors: list[float] = [float('inf')] * len(curves)
 
@@ -373,7 +321,7 @@ def compute_first_assignment_by_error(
     for cluster in clusters:
 
         # Seed each vector field with the currently worst-fitting curve
-        worst_index: int = int(np.argmax(errors))  # todo: solve bug - is attempting to get argmax of empty sequence
+        worst_index: int = int(np.argmax(errors))
 
         cluster.curves.append(curves[worst_index])
 
@@ -519,7 +467,6 @@ def optimize_all_clusters_vector_fields(
     , optimize the vector field parameters to minimize error.
     """
     for cluster in clusters:
-        print("\n STARTING VF OPTIMIZATION \n")
         cluster.optimize_vector_field(
             grid=grid,
             total_curve_length=total_curve_length,

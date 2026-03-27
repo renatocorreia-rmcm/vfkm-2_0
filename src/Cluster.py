@@ -1,9 +1,6 @@
 from __future__ import annotations
 from typing import Optional
 
-from numpy.ma.core import absolute
-from scipy.interpolate import barycentric_interpolate
-
 from VectorField2D import VectorField2D
 from Grid import CurveDescription, Grid
 import numpy as np
@@ -77,7 +74,7 @@ class Cluster:
         self.total_error = 0
         self.max_error = 0
 
-    def optimize_vector_field(  # todo: to test: its not generating same output than original
+    def optimize_vector_field(
             self,
             grid: Grid,
             smoothness_weight: float,
@@ -102,51 +99,9 @@ class Cluster:
 
                 k_factor: float = (((1.0 - smoothness_weight) * (segment.timestamps[1] - segment.timestamps[0])) / total_curve_length)
 
-
-                """ DEBUG K_FACTOR
-
-                print("\nK_FACTOR\n")
-
-                print(f"smoothess_weight {smoothness_weight}")
-                print(f"time_1           {segment.timestamps[1]}")
-                print(f"time_0           {segment.timestamps[0]}")
-                print(f"total_curve_len  {total_curve_length}")
-
-
-
-                print(k_factor)
-                input("\n\nINPUT ANYTHING TO CONTINUE\n\n")
-                """
-
-
-                # Sum contributions into the RHS vectors.  # todo: debug - difference seems to appears here
+                # Sum contributions into the RHS vectors.
                 segment.add_cTx(indepx, curve.rhsx, k_factor)
                 segment.add_cTx(indepy, curve.rhsy, k_factor)
-
-                """
-                print(f"k       {k_factor}")
-                print(f"kcpp    {k_cpp}")
-                print(f"c       {curve.index}")
-                print(f"segment {segment.index}")
-
-                print("\nINDEP X\n")
-                print(indepx)
-                print("\nINDEP Y\n")
-                print(indepy)
-
-                # todo: solve: indep[2] is always 0
-
-                #input("\n\nINPUT ANYTHING TO CONTINUE\n\n")
-                
-                """
-
-        """ DEBUG RSH's  # todo: solve diference
-        
-        print("\nINDEP X\n")
-        print(indepx)
-        print(indepy)
-        print("\nINDEP Y\n")
-        """
 
         # import here to avoid circular import at module load time
         from VFKM import ProblemSettings, cg_solve
@@ -172,7 +127,7 @@ class Cluster:
         return vector this position
         """
 
-        grid_coordinates: np.ndarray[float] = relative_coordinates * np.array([grid.get_resolution_x()-1, grid.get_resolution_y()-1])  # todo: check if coordinate transformation is correct
+        grid_coordinates: np.ndarray[float] = relative_coordinates * np.array([grid.get_resolution_x()-1, grid.get_resolution_y()-1])
 
         # get face
         face: TriangularFace = grid.get_face_where_point_lies(grid_coordinates)

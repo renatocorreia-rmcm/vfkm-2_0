@@ -9,7 +9,7 @@ from Grid_aux import TriangularFace, PointLocation, Segment
 from PolygonalPath2D import PolygonalPath2D  # for Grid.clip_line()
 
 
-class CurveDescription:  # todo: it contain its index. No need to array of curve indices in functions arguments
+class CurveDescription:
     """
     Array of Segments
 
@@ -83,8 +83,7 @@ class CurveDescription:  # todo: it contain its index. No need to array of curve
         chains Segment.add_cx and Segment.add_cTx for each segment in this curve
         """
 
-        v: np.ndarray[float] = np.zeros(
-            2 * len(self.segments))  # the "summand" parameter for add_cx and add_cTx methods
+        v: np.ndarray[float] = np.zeros(2 * len(self.segments))  # the "summand" parameter for add_cx and add_cTx methods
 
         for segment in self.segments:  # for each segment in curve
 
@@ -212,7 +211,7 @@ class Grid:
             index // self.resolution_x
         ])
 
-    def locate_point(self, point_loc: PointLocation, point_coordinates: np.ndarray[  # todo: CHECK
+    def locate_point(self, point_loc: PointLocation, point_coordinates: np.ndarray[
         float]) -> None:  # todo: re-write to return instead of reference passing
         """
         Calculates the barycentric coordinates of a point within a triangular face.
@@ -228,14 +227,6 @@ class Grid:
         )
 
         # det tells triangle area
-        """
-        det: float = np.linalg.det(
-            np.array([
-                [vertices[0][0], vertices[1][0]],
-                [vertices[0][1], vertices[1][1]]
-            ])
-        )
-        """
         det: float = (vertices[1][0] - vertices[0][0]) * (vertices[2][1] - vertices[0][1]) - (vertices[1][1] - vertices[0][1]) * (vertices[2][0] - vertices[0][0])
 
         if det == 0:
@@ -597,7 +588,7 @@ class Grid:
         else:
             return (u[1] - v1[1]) / (v2[1] - v1[1])
 
-    def clip_line(self, path1: PolygonalPath2D) -> PolygonalPath2D:  # todo: is reference passing actually working ?
+    def clip_line(self, path1: PolygonalPath2D) -> PolygonalPath2D:
         """
         This performs tessellation of 'path1' by finding all intersection points.
 

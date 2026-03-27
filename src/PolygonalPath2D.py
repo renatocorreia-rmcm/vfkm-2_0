@@ -1,5 +1,4 @@
 import numpy as np
-from typing import Optional
 
 from Point2D import Point2D
 
