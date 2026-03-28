@@ -9,7 +9,6 @@ from Grid import Grid, CurveDescription
 from Cluster import Cluster
 from PolygonalPath2D import PolygonalPath2D
 from VectorField2D import VectorField2D
-from src.Visualizer import Visualizer
 
 
 class ProblemSettings:  # used only by MULTIPLY_BY_A
@@ -120,8 +119,8 @@ class VFKM:
         total_error: float = float('inf')
 
         for i in range(number_of_iterations):
-            print(f"{i:02d} iteration")
-            print(f"\nBefore optimization: {total_error}")
+            print(f"\n{i:02d} iteration")
+            print(f"Before optimization: {total_error}")
 
             """
                 OPTMIZE
@@ -167,14 +166,6 @@ class VFKM:
             if total_change == 0:  # convergence
 
                 print(f"Converged in {i} iterations.")
-
-                visualizer = Visualizer(
-                    clusters=clusters,
-                    grid=grid,
-                    paths=paths
-                )
-                visualizer.visualize_curves()
-                visualizer.visualize_vector_fields(3)
 
                 return clusters
 

@@ -10,7 +10,6 @@ from math import inf
 
 from PolygonalPath2D import PolygonalPath2D as PolygonalPath
 from VFKM import VFKM
-from src.Visualizer import Visualizer
 
 
 def load_curves(filename: str) -> tuple[list[PolygonalPath], dict[str, float]]:
@@ -215,16 +214,6 @@ def main():
         current_file_loaded=filename,
         root_cluster=root_cluster  # first cluster is root
     )
-
-    """
-    visualizer = Visualizer(
-        clusters=clusters,
-        grid=grid,
-        paths=paths
-    )
-    visualizer.visualize_vector_fields(resolution=5)
-    visualizer.visualize_curves()
-    """
 
 
 """ debug arguments: ../data/synthetic.txt 3 2 0.05 ../output/
