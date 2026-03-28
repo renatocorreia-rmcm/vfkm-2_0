@@ -120,8 +120,8 @@ class VFKM:
         total_error: float = float('inf')
 
         for i in range(number_of_iterations):
-            print(f"Before optimization: {total_error}")
-
+            print(f"{i:02d} iteration")
+            print(f"\nBefore optimization: {total_error}")
 
             """
                 OPTMIZE
@@ -141,7 +141,6 @@ class VFKM:
             )
             print(f"After optimization: {total_error}")
 
-
             """
                 ASSIGN
             """
@@ -158,7 +157,8 @@ class VFKM:
                 smoothness_weight=smoothness_weight
             )
 
-            print(f"After assignment: {total_error} changes: {total_change}")
+            print(f"After assignment: {total_error}")
+            print(f"Changes: {total_change}")
 
             repopulate_all_empty_cluster_by_random(
                 clusters=clusters

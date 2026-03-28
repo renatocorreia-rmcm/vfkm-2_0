@@ -195,7 +195,7 @@ def main():
     )
 
     # OPTIMIZE
-    print("Optimizing...")
+
 
     # initialize current cluster
     current_cluster = root_cluster
