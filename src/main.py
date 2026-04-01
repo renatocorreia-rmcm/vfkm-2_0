@@ -11,7 +11,6 @@ from math import inf
 from PolygonalPath2D import PolygonalPath2D as PolygonalPath
 from VFKM import VFKM
 
-
 def load_curves(filename: str) -> tuple[list[PolygonalPath], dict[str, float]]:
     """
 	params:
@@ -84,8 +83,13 @@ def load_curves(filename: str) -> tuple[list[PolygonalPath], dict[str, float]]:
 import os
 
 
-def save_experiment(directory: str, current_file_loaded: str, root_cluster: Cluster):
+def save_experiment(k: int, directory: str, current_file_loaded: str, root_cluster: Cluster):
     # todo: include file with data for init visualizer
+
+    with open('../output/visualizer.txt', 'w') as visualizer_file:
+        visualizer_file.write(f'{k}\n')
+        visualizer_file.write(current_file_loaded)
+
     # Create experiment file
     experiment_path = os.path.join(directory, "experiment.txt")
     with open(experiment_path, "w") as experiment_file:
@@ -210,10 +214,12 @@ def main():
     root_cluster.children = clusters
 
     save_experiment(
+        k=number_of_vector_fields,
         directory=output_directory,
         current_file_loaded=filename,
         root_cluster=root_cluster  # first cluster is root
     )
+
 
 
 """ debug arguments: ../data/synthetic.txt 3 2 0.05 ../output/
