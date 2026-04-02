@@ -13,7 +13,7 @@ curve_type = tuple[list[float], list[float], list[float]]  # 3ple of x, y, t lis
 
 class Visualizer:
 
-    curves: npt.NDArray[curve_type]  # array of all curves in dataset
+    curves: npt.NDArray[curve_type]  # array of all curves in dataset  # todo: plot curves with color to error
 
     vector_fields: list[vector_field_type]
 
@@ -234,10 +234,34 @@ class Visualizer:
             ax.set_xlim(self.bounding_box['x_min'], self.bounding_box['x_max'])
             ax.set_ylim(self.bounding_box['y_min'], self.bounding_box['y_max'])
 
+            U, V = resampled_vector_field
 
-            ax.quiver(X, Y, resampled_vector_field[0], resampled_vector_field[1])
+            ax.quiver(X, Y, U, V, np.hypot(U, V), cmap='Wistia')
 
             plt.savefig(f'../output/vector_field_{i}.png', dpi=100)
+
+    def save_streams(self, resolution: tuple[int, int]):
+
+        X = np.linspace(self.bounding_box['x_min'], self.bounding_box['x_max'], resolution[0])
+        Y = np.linspace(self.bounding_box['y_min'], self.bounding_box['y_max'], resolution[1])
+        X, Y = np.meshgrid(X, Y)
+
+        for i, resampled_vector_field in enumerate(self.resample_vector_fields(resolution)):
+            fig, ax = plt.subplots(constrained_layout=True)
+            ax.set_aspect('equal')
+            ax.set_xlim(self.bounding_box['x_min'], self.bounding_box['x_max'])
+            ax.set_ylim(self.bounding_box['y_min'], self.bounding_box['y_max'])
+
+            U, V = resampled_vector_field
+
+            ny, nx = Y.shape
+
+            U = np.array(U).reshape(ny, nx)
+            V = np.array(V).reshape(ny, nx)
+            ax.streamplot(X, Y, U, V, color=np.hypot(U, V), cmap='Wistia')
+
+            plt.savefig(f'../output/stream_{i}.png', dpi=200)
+
 
     def save_dataset(self):  # todo: apply color here
 
@@ -293,8 +317,9 @@ class Visualizer:
         self.save_vector_fields(vf_resolution)
         self.save_dataset()
         self.save_clusters_curves(vf_resolution)
+        self.save_streams(vf_resolution)
 
 
 if __name__ == '__main__':  # only call this if this module be runned directly
     v = Visualizer('../data/atlantic_storms.txt')
-    v.save_all((10, 10))
+    v.save_all((12, 12))
