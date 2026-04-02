@@ -134,7 +134,7 @@ class Visualizer:
                             curve[1].append(y)
                             curve[2].append(t)
 
-            return np.array(curves), bounding_box
+            return np.array(curves, dtype='object'), bounding_box
 
         self.curves, self.bounding_box = load_curves(dataset)
 
@@ -149,6 +149,10 @@ class Visualizer:
             return clusters_curves
 
         self.clusters_curves = map_clusters_curves()
+
+        # set pyplot resolution
+
+        plt.rcParams['savefig.dpi'] = 300
 
     # GETTERS
 
@@ -233,7 +237,7 @@ class Visualizer:
 
             ax.quiver(X, Y, resampled_vector_field[0], resampled_vector_field[1])
 
-            plt.savefig(f'../output/vector_field_{i}.png')
+            plt.savefig(f'../output/vector_field_{i}.png', dpi=100)
 
     def save_dataset(self):  # todo: apply color here
 
@@ -257,8 +261,8 @@ class Visualizer:
 
     def save_clusters_curves(self, vf_resolution: tuple[int, int] = None):
 
-        resampled_vector_fields: list[vector_field_type]
-        meshgrid: tuple
+        resampled_vector_fields: list[vector_field_type] = []
+        meshgrid: tuple = ()
 
         if vf_resolution:
             X = np.linspace(self.bounding_box['x_min'], self.bounding_box['x_max'], vf_resolution[0])
@@ -292,5 +296,5 @@ class Visualizer:
 
 
 if __name__ == '__main__':  # only call this if this module be runned directly
-    v = Visualizer('../data/synthetic.txt')
+    v = Visualizer('../data/atlantic_storms.txt')
     v.save_all((10, 10))
