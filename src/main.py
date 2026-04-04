@@ -221,7 +221,6 @@ def main():
     )
 
 
-
 """ debug arguments: ../data/synthetic.txt 3 2 0.05 ../output/
 
 os endereços usados na modularização desse código 

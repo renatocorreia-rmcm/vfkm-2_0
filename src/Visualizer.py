@@ -1,9 +1,13 @@
 import copy
 from math import inf
 
+import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
 import numpy.typing as npt
+
+import matplotlib.cm as cm
+import matplotlib.colors as mcolors
 
 # basic types
 
@@ -13,12 +17,13 @@ curve_type = tuple[list[float], list[float], list[float]]  # 3ple of x, y, t lis
 
 class Visualizer:
 
-    curves: npt.NDArray[curve_type]  # array of all curves in dataset  # todo: plot curves with color to error
+    curves: npt.NDArray[curve_type]  # array of all curves in dataset
 
     vector_fields: list[vector_field_type]
 
-    clusters_indices: list[list[int]]
-    clusters_curves: list[list[curve_type]]
+    clusters_indices: list[list[tuple[int, float]]]  # used only to load self.cluster_curves
+    clusters_curves: list[list[tuple[curve_type, float]]]
+    clusters_errors_bounds: list[tuple[float, float]]  # min and max error for each cluster
 
     bounding_box: dict[str, float]
 
@@ -53,25 +58,39 @@ class Visualizer:
 
         # load clusters indices
 
-        def load_cluster_indices(filename: str) -> list[int]:
+        def load_cluster_indices(filename: str) -> tuple[list[tuple[int, float]], tuple[float, float]]:
             cluster = []
+
+            min_error = float('inf')
+            max_error = float('-inf')
+
             with open(filename, 'r') as f:
                 for line in f:
-                    cluster.append(int(line.split()[0]))
+                    line = line.split()
+                    error = float(line[1])
+                    if error < min_error: min_error = error
+                    if error > max_error: max_error = error
 
-            return cluster
+                    cluster.append((int(line[0]), error))
 
-        def load_all_clusters_indices() -> list[list[int]]:
+            return cluster, (min_error, max_error)
+
+        def load_all_clusters_indices() -> tuple[list[list[tuple[int, float]]], list[tuple[float, float]]]:
             with open('../output/visualizer.txt', 'r') as file:
                 k: int = int(file.readline())
 
             clusters = []
+            error_bounds = []
+
             for i in range(k):
-                clusters.append(load_cluster_indices(f"../output/curves_r_{i}.txt"))
+                cluster, error_bound = load_cluster_indices(f"../output/curves_r_{i}.txt")
 
-            return clusters
+                clusters.append(cluster)
+                error_bounds.append(error_bound)
 
-        self.clusters_indices = load_all_clusters_indices()
+            return clusters, error_bounds
+
+        self.clusters_indices, self.clusters_errors_bounds = load_all_clusters_indices()
 
         # load all curves
 
@@ -140,10 +159,10 @@ class Visualizer:
 
         # load all clusters curves
 
-        def map_clusters_curves() -> list[list[curve_type]]:
+        def map_clusters_curves() -> list[list[tuple[curve_type, float]]]:
 
-            clusters_curves: list[list[curve_type]] = [
-                [self.curves[i] for i in cluster] for cluster in self.clusters_indices
+            clusters_curves: list[list[tuple[curve_type, float]]] = [
+                [(self.curves[curve[0]], curve[1]) for curve in cluster] for cluster in self.clusters_indices
             ]
 
             return clusters_curves
@@ -262,15 +281,13 @@ class Visualizer:
 
             plt.savefig(f'../output/stream_{i}.png', dpi=200)
 
-
-    def save_dataset(self):  # todo: apply color here
+    def save_dataset(self):
 
         fig, ax = plt.subplots(constrained_layout=True)
         ax.set_aspect('equal')
         ax.set_xlim(self.bounding_box['x_min'], self.bounding_box['x_max'])
         ax.set_ylim(self.bounding_box['y_min'], self.bounding_box['y_max'])
 
-        """
         # plot in index order
         for curve in self.curves:
             ax.plot(curve[0], curve[1])
@@ -280,6 +297,7 @@ class Visualizer:
         for cluster in self.clusters_curves:
             for curve in cluster:
                 ax.plot(curve[0], curve[1])
+        """
 
         plt.savefig('../output/dataset.png')
 
@@ -302,8 +320,20 @@ class Visualizer:
             ax.set_xlim(self.bounding_box['x_min'], self.bounding_box['x_max'])
             ax.set_ylim(self.bounding_box['y_min'], self.bounding_box['y_max'])
 
-            for curve in cluster:
-                ax.plot(curve[0], curve[1])
+            error_bounding = self.clusters_errors_bounds[i]
+
+            norm = mcolors.Normalize(vmin=error_bounding[0], vmax=error_bounding[1])
+            cmap = cm.viridis
+
+            # colorbar
+            # sm = cm.ScalarMappable(norm=norm, cmap=cmap)
+            # plt.colorbar(sm, ax=ax, label="Curve Error")
+
+            for curve in cluster:  # todo: must normalize errors before
+                curve_cords = curve[0]
+                curve_error: float = curve[1]
+
+                ax.plot(curve_cords[0], curve_cords[1], color=cmap(norm(curve_error)))
 
             plt.savefig(f'../output/curves_{i}.png')
 
