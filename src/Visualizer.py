@@ -29,7 +29,12 @@ class Visualizer:
 
     # CONSTRUCTOR
 
-    def __init__(self, dataset: str):
+    def __init__(self, output_directory: str, current_file_loaded: str):
+
+        self.dataset_path = f"../data/{current_file_loaded.split('/')[-1]}"  # todo: softcode this
+
+        self.experiment_directory = output_directory + current_file_loaded.split('/')[-1][:-4] + '/'
+        print(f"Saving images at {self.experiment_directory}")
 
         # load cluster vector fields
 
@@ -46,12 +51,12 @@ class Visualizer:
             return vector_field
 
         def load_all_vector_fields() -> list[vector_field_type]:
-            with open('../output/visualizer.txt', 'r') as file:
+            with open(self.experiment_directory+'visualizer.txt', 'r') as file:
                 k: int = int(file.readline())
 
             vector_fields = []
             for i in range(k):
-                vector_fields.append(load_vector_field(f"../output/vf_r_{i}.txt"))
+                vector_fields.append(load_vector_field(self.experiment_directory + f"vf_r_{i}.txt"))
             return vector_fields
 
         self.vector_fields = load_all_vector_fields()
@@ -76,14 +81,14 @@ class Visualizer:
             return cluster, (min_error, max_error)
 
         def load_all_clusters_indices() -> tuple[list[list[tuple[int, float]]], list[tuple[float, float]]]:
-            with open('../output/visualizer.txt', 'r') as file:
+            with open(self.experiment_directory + 'visualizer.txt', 'r') as file:
                 k: int = int(file.readline())
 
             clusters = []
             error_bounds = []
 
             for i in range(k):
-                cluster, error_bound = load_cluster_indices(f"../output/curves_r_{i}.txt")
+                cluster, error_bound = load_cluster_indices(self.experiment_directory + f"curves_r_{i}.txt")
 
                 clusters.append(cluster)
                 error_bounds.append(error_bound)
@@ -155,7 +160,7 @@ class Visualizer:
 
             return np.array(curves, dtype='object'), bounding_box
 
-        self.curves, self.bounding_box = load_curves(dataset)
+        self.curves, self.bounding_box = load_curves(self.dataset_path)
 
         # load all clusters curves
 
@@ -257,7 +262,7 @@ class Visualizer:
 
             ax.quiver(X, Y, U, V, np.hypot(U, V), cmap='Wistia')
 
-            plt.savefig(f'../output/vector_field_{i}.png', dpi=100)
+            plt.savefig(self.experiment_directory + f'vector_field_{i}.png', dpi=100)
 
     def save_streams(self, resolution: tuple[int, int]):
 
@@ -279,7 +284,7 @@ class Visualizer:
             V = np.array(V).reshape(ny, nx)
             ax.streamplot(X, Y, U, V, color=np.hypot(U, V), cmap='Wistia')
 
-            plt.savefig(f'../output/stream_{i}.png', dpi=200)
+            plt.savefig(self.experiment_directory + f'stream_{i}.png', dpi=200)
 
     def save_dataset(self):
 
@@ -299,7 +304,7 @@ class Visualizer:
                 ax.plot(curve[0], curve[1])
         """
 
-        plt.savefig('../output/dataset.png')
+        plt.savefig(self.experiment_directory + 'dataset.png')
 
     def save_clusters_curves(self, vf_resolution: tuple[int, int] = None):
 
@@ -335,11 +340,11 @@ class Visualizer:
 
                 ax.plot(curve_cords[0], curve_cords[1], color=cmap(norm(curve_error)))
 
-            plt.savefig(f'../output/curves_{i}.png')
+            plt.savefig(self.experiment_directory + f'curves_{i}.png')
 
             if vf_resolution:
                 ax.quiver(meshgrid[0], meshgrid[1], resampled_vector_fields[i][0], resampled_vector_fields[i][1], zorder=2)
-                plt.savefig(f'../output/cluster_{i}.png')
+                plt.savefig(self.experiment_directory + f'cluster_{i}.png')
 
     # ALL
 
@@ -350,6 +355,6 @@ class Visualizer:
         self.save_streams(vf_resolution)
 
 
-if __name__ == '__main__':  # only call this if this module be runned directly
-    v = Visualizer('../data/atlantic_storms.txt')
+if __name__ == '__main__':
+    v = Visualizer(current_file_loaded='../data/synthetic.txt', output_directory='../output/')
     v.save_all((12, 12))

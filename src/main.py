@@ -1,3 +1,5 @@
+from pathlib import Path
+
 import numpy as np
 
 from Cluster import Cluster
@@ -10,6 +12,8 @@ from math import inf
 
 from PolygonalPath2D import PolygonalPath2D as PolygonalPath
 from VFKM import VFKM
+from src.Visualizer import Visualizer
+
 
 def load_curves(filename: str) -> tuple[list[PolygonalPath], dict[str, float]]:
     """
@@ -83,15 +87,23 @@ def load_curves(filename: str) -> tuple[list[PolygonalPath], dict[str, float]]:
 import os
 
 
-def save_experiment(k: int, directory: str, current_file_loaded: str, root_cluster: Cluster):
-    # todo: include file with data for init visualizer
+def save_experiment(k: int, output_directory: str, current_file_loaded: str, root_cluster: Cluster):
+    """
+    save files in experiment_directory = output_directory/<current_file_loaded_name>/
+    this allows to keep multiple experiments results at the same time
+    """
 
-    with open('../output/visualizer.txt', 'w') as visualizer_file:
+    experiment_directory = output_directory + current_file_loaded.split('/')[-1][:-4] + '/'
+    print(f'Saving experiment at {experiment_directory}')
+
+    Path(experiment_directory).mkdir(parents=True, exist_ok=True)
+
+    with open(experiment_directory+'visualizer.txt', 'w') as visualizer_file:
         visualizer_file.write(f'{k}\n')
-        visualizer_file.write(current_file_loaded)
+        visualizer_file.write(current_file_loaded+'\n')
 
     # Create experiment file
-    experiment_path = os.path.join(directory, "experiment.txt")
+    experiment_path = experiment_directory + 'experiment.txt'
     with open(experiment_path, "w") as experiment_file:
         experiment_file.write(current_file_loaded + "\n")
 
@@ -111,7 +123,7 @@ def save_experiment(k: int, directory: str, current_file_loaded: str, root_clust
             cluster_name = map_cluster_path[c]
 
             # --- Write curve indices file ---
-            curve_filename = os.path.join(directory, f"curves_{cluster_name}.txt")
+            curve_filename = os.path.join(experiment_directory, f"curves_{cluster_name}.txt")
             with open(curve_filename, "w") as curve_indices_file:
                 number_of_curves = len(c.curves)
                 assert number_of_curves == len(c.curve_errors)
@@ -120,7 +132,7 @@ def save_experiment(k: int, directory: str, current_file_loaded: str, root_clust
                     curve_indices_file.write(f"{c.curves[i].index} {c.curve_errors[i]}\n")
 
             # --- Write vector field file ---
-            vector_field_filename = os.path.join(directory, f"vf_{cluster_name}.txt")
+            vector_field_filename = os.path.join(experiment_directory, f"vf_{cluster_name}.txt")
             with open(vector_field_filename, "w") as vector_field_file:
                 x_component = c.vector_field[0]
                 y_component = c.vector_field[1]
@@ -199,9 +211,7 @@ def main():
 
     # OPTIMIZE
 
-
     # initialize current cluster
-    current_cluster = root_cluster
 
     # optimize
     clusters: list[Cluster] = VFKM.optimize_implicit_fast_with_weights(
@@ -215,10 +225,14 @@ def main():
 
     save_experiment(
         k=number_of_vector_fields,
-        directory=output_directory,
+        output_directory=output_directory,
         current_file_loaded=filename,
         root_cluster=root_cluster  # first cluster is root
     )
+
+    print("Loading Visualizer...")
+    v = Visualizer(output_directory, filename)
+    v.save_all((12, 12))
 
 
 """ debug arguments: ../data/synthetic.txt 3 2 0.05 ../output/
