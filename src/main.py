@@ -87,7 +87,10 @@ def load_curves(filename: str) -> tuple[list[PolygonalPath], dict[str, float]]:
 import os
 
 
-def save_experiment(k: int, output_directory: str, current_file_loaded: str, root_cluster: Cluster):
+def save_experiment(
+        k: int, grid_resolution: tuple[int, int], smoothness_weight: float,
+        output_directory: str, current_file_loaded: str, root_cluster: Cluster
+):
     """
     save files in experiment_directory = output_directory/<current_file_loaded_name>/
     this allows to keep multiple experiments results at the same time
@@ -96,14 +99,15 @@ def save_experiment(k: int, output_directory: str, current_file_loaded: str, roo
     experiment_directory = output_directory + current_file_loaded.split('/')[-1][:-4] + '/'
     print(f'Saving experiment at {experiment_directory}')
 
-    Path(experiment_directory).mkdir(parents=True, exist_ok=True)
+    Path(experiment_directory+'txt/').mkdir(parents=True, exist_ok=True)
 
-    with open(experiment_directory+'visualizer.txt', 'w') as visualizer_file:
+    with open(experiment_directory+'txt/visualizer.txt', 'w') as visualizer_file:
+        visualizer_file.write(f'{grid_resolution[0]} {grid_resolution[1]}\n')
         visualizer_file.write(f'{k}\n')
-        visualizer_file.write(current_file_loaded+'\n')
+        visualizer_file.write(f'{smoothness_weight}\n')
 
     # Create experiment file
-    experiment_path = experiment_directory + 'experiment.txt'
+    experiment_path = experiment_directory + 'txt/experiment.txt'
     with open(experiment_path, "w") as experiment_file:
         experiment_file.write(current_file_loaded + "\n")
 
@@ -123,7 +127,7 @@ def save_experiment(k: int, output_directory: str, current_file_loaded: str, roo
             cluster_name = map_cluster_path[c]
 
             # --- Write curve indices file ---
-            curve_filename = os.path.join(experiment_directory, f"curves_{cluster_name}.txt")
+            curve_filename = os.path.join(experiment_directory, f"txt/curves_{cluster_name}.txt")
             with open(curve_filename, "w") as curve_indices_file:
                 number_of_curves = len(c.curves)
                 assert number_of_curves == len(c.curve_errors)
@@ -132,7 +136,7 @@ def save_experiment(k: int, output_directory: str, current_file_loaded: str, roo
                     curve_indices_file.write(f"{c.curves[i].index} {c.curve_errors[i]}\n")
 
             # --- Write vector field file ---
-            vector_field_filename = os.path.join(experiment_directory, f"vf_{cluster_name}.txt")
+            vector_field_filename = os.path.join(experiment_directory, f"txt/vf_{cluster_name}.txt")
             with open(vector_field_filename, "w") as vector_field_file:
                 x_component = c.vector_field[0]
                 y_component = c.vector_field[1]
@@ -224,7 +228,10 @@ def main():
     root_cluster.children = clusters
 
     save_experiment(
+        grid_resolution=(grid.get_resolution_x(), grid.get_resolution_y()),
         k=number_of_vector_fields,
+        smoothness_weight=smoothness_weight,
+
         output_directory=output_directory,
         current_file_loaded=filename,
         root_cluster=root_cluster  # first cluster is root
@@ -243,5 +250,6 @@ e não editores de texto, como VScode, que acessam o endereço a partir do arqui
 
 rodar no VScode exige reescrever as importações em cada arquivo
 """
+# todo: hierarquical clustering
 if __name__ == "__main__":
     main()
