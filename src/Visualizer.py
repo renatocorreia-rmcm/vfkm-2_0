@@ -20,6 +20,7 @@ curve_type = tuple[list[float], list[float], list[float]]  # 3ple of x, y, t lis
 
 # todo: include colormesh plots (background of something ?)
 
+# todo: create own dataset variation: translate trajectories my its average position. so on clustering, we get the best of its rotation tendencies
 # todo: may test some propposital alisaing on trajectories, reading then with a stepfactor traj = traj[::s]
 # may induce some average trajectory
 
@@ -308,6 +309,7 @@ class Visualizer:
             colorbar.ax.yaxis.set_major_formatter(FormatStrFormatter('%.3f'))
 
             plt.savefig(self.experiment_directory + f'vector_field_{i}.png', dpi=150)
+            plt.close(fig)
 
     def save_streams(self, resolution: tuple[int, int]):
 
@@ -340,6 +342,7 @@ class Visualizer:
             colorbar.ax.yaxis.set_major_formatter(FormatStrFormatter('%.3f'))
 
             plt.savefig(self.experiment_directory + f'stream_{i}.png', dpi=200)
+            plt.close(fig)
 
     def save_dataset(self):
 
@@ -357,6 +360,7 @@ class Visualizer:
         """
 
         plt.savefig(self.experiment_directory + 'dataset.png')
+        plt.close(fig)
 
     def save_clusters_curves(self, vf_resolution: tuple[int, int] = None):
 
@@ -399,6 +403,7 @@ class Visualizer:
                 ax.quiver(meshgrid[0], meshgrid[1], U, V, color='w', zorder=2)
                 plt.title(f'cluster {i + 1} of {self.k}')
                 plt.savefig(self.experiment_directory + f'cluster_{i}.png')
+            plt.close(fig)
 
     # ALL
 

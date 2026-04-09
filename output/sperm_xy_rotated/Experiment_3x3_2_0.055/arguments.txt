@@ -1,0 +1,3 @@
+grid_resolution: 3 3
+amount_of_clusters: 2
+smoothness_weight: 0.055

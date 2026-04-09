@@ -209,6 +209,16 @@ def main(
 		trajectoryFile gridResolution numberOfVectorFields smoothnessWeight outputDirectory
 	"""
 
+    # CHECK IF EXPERIMENT ALREADY EXISTS
+    experiment_name = f"Experiment_{grid_resolution}x{grid_resolution}_{number_of_vector_fields}_{smoothness_weight}"
+    experiment_directory = output_directory + filename.split('/')[-1][:-4] + f'/{experiment_name}/'
+
+    # delete experiment_path directory
+    if Path(experiment_directory).exists():
+        print(f"\nFOUND EXPERIMENT {experiment_directory} ALREADY\n SKKIPING TO NEXT ONE\n")
+        return
+
+
     """
     # check arguments
     right_number_of_parameters = 6
@@ -248,9 +258,9 @@ def main(
 
     root_cluster.children = clusters
 
-    expeperiment_name = f"Experiment_{grid.get_resolution_x()}x{grid.get_resolution_y()}_{number_of_vector_fields}_{smoothness_weight}"
+    experiment_name = f"Experiment_{grid.get_resolution_x()}x{grid.get_resolution_y()}_{number_of_vector_fields}_{smoothness_weight}"
     save_experiment(
-        experiment_name=expeperiment_name,
+        experiment_name=experiment_name,
 
         grid_resolution=(grid.get_resolution_x(), grid.get_resolution_y()),
         k=number_of_vector_fields,
@@ -262,7 +272,7 @@ def main(
     )
 
     print("Loading Visualizer...")
-    v = Visualizer(output_directory, filename, expeperiment_name)
+    v = Visualizer(output_directory, filename, experiment_name)
     v.save_all((10, 10))  # todo: softcode this
 
 
@@ -275,12 +285,13 @@ e não editores de texto, como VScode, que acessam o endereço a partir do arqui
 rodar no VScode exige reescrever as importações em cada arquivo
 """
 
+# todo: USE HIERARQUICAL CLUSTERING
 if __name__ == "__main__":
-    for i_r, resolution in enumerate([3, 4, 5, 6, 7]):
-        for i_k, k in enumerate([2, 3, 4, 5, 6, 7]):
-            for i_s, smoothness_weight in enumerate([0.005, 0.01, 0.025, 0.04, 0.055, 0.07, 0.1]):
+    for i_r, resolution in enumerate([3, 4, 5, 6, 7]):  # todo: add 8, 9, 10
+        for i_k, k in enumerate([2, 3, 4, 5, 6, 7]):  # todo: add 8, 9
+            for i_s, smoothness_weight in enumerate([0.005, 0.01, 0.025, 0.04, 0.055, 0.07, 0.1]):  # todo: add 0.001, 0.0005, 0.0001
 
-                print('#'*40)
+                print('\n'+'#'*100)
                 print(f'{(i_r+1)*(i_k+1)*(i_s+1)} EXPERIMENT')
                 print(f'resolution = {resolution}')
                 print(f'k = {k}')
