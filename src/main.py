@@ -101,12 +101,13 @@ def save_experiment(
     """
 
     experiment_directory = output_directory + current_file_loaded.split('/')[-1][:-4] + f'/{experiment_name}/'
-    print(f"Saving experiment at {experiment_directory}")
 
     # delete experiment_path directory
     if Path(experiment_directory).exists():
         print(f"overwriting (recreating) already existent {experiment_directory}")
         shutil.rmtree(Path(experiment_directory))
+    else:
+        print(f"Saving experiment at {experiment_directory}")
 
     # (re)create experiment_path directory
     Path(experiment_directory+'txt/').mkdir(parents=True, exist_ok=True)
@@ -210,7 +211,7 @@ def main(
 	"""
 
     # CHECK IF EXPERIMENT ALREADY EXISTS
-    experiment_name = f"Experiment_{grid_resolution}x{grid_resolution}_{number_of_vector_fields}_{smoothness_weight}"
+    experiment_name = f"Experiment_{grid_resolution}x{grid_resolution}_{number_of_vector_fields}_{smoothness_weight:.4f}"
     experiment_directory = output_directory + filename.split('/')[-1][:-4] + f'/{experiment_name}/'
 
     # delete experiment_path directory
@@ -258,7 +259,6 @@ def main(
 
     root_cluster.children = clusters
 
-    experiment_name = f"Experiment_{grid.get_resolution_x()}x{grid.get_resolution_y()}_{number_of_vector_fields}_{smoothness_weight}"
     save_experiment(
         experiment_name=experiment_name,
 
@@ -271,7 +271,7 @@ def main(
         root_cluster=root_cluster  # first cluster is root
     )
 
-    print("Loading Visualizer...")
+    #print("Loading Visualizer...")
     v = Visualizer(output_directory, filename, experiment_name)
     v.save_all((10, 10))  # todo: softcode this
 
@@ -286,20 +286,107 @@ rodar no VScode exige reescrever as importações em cada arquivo
 """
 
 # todo: USE HIERARQUICAL CLUSTERING
+# if __name__ == "__main__":
+#
+#     # SEARCHING RESULTS IN PARAMETER SPACE
+#
+#     resolution_space = [3, 4, 5, 6, 7, 8, 9, 10]
+#     k_space = [2, 3, 4, 5, 6, 7, 8, 9]
+#     smoothness_weight_space = [0.0001, 0.0005, 0.0015, 0.0050, 0.0100, 0.0250, 0.0400, 0.0700, 0.1000]
+#
+#     parameter_space_size = len(resolution_space)*len(k_space)*len(smoothness_weight_space)
+#
+#     experiment_counter = 0
+#     for i_r, resolution in enumerate(resolution_space):
+#         for i_k, k in enumerate(k_space):
+#             for i_s, smoothness_weight in enumerate(smoothness_weight_space):
+#                 experiment_counter+=1
+#
+#                 print('\n'+'#'*100)
+#                 print(f'EXPERIMENT {experiment_counter} of {parameter_space_size}')
+#                 print(f'resolution = {resolution}x{resolution}')
+#                 print(f'k = {k}')
+#                 print(f'smoothness_weight = {smoothness_weight:.4f}')
+#
+#                 print('\n> sperm_xy'.upper())
+#                 main(filename='../data/sperm_xy.txt', grid_resolution=resolution, number_of_vector_fields=k, smoothness_weight=smoothness_weight, output_directory='../output/')
+#                 print('\n> sperm_xy_translate_modified'.upper())
+#                 main(filename='../data/sperm_xy_translate_modified.txt', grid_resolution=resolution, number_of_vector_fields=k, smoothness_weight=smoothness_weight, output_directory='../output/')
+#                 print('\n> sperm_xy_rotated'.upper())
+#                 main(filename='../data/sperm_xy_rotated.txt', grid_resolution=resolution, number_of_vector_fields=k, smoothness_weight=smoothness_weight, output_directory='../output/')
+
+
+
+
+from multiprocessing import Pool, cpu_count
+
+def run_experiment(args):
+    exp_id, total, resolution, k, smoothness_weight = args
+
+    print('\n' + '#' * 100)
+    print(f'EXPERIMENT {exp_id} of {total}')
+    print(f'resolution = {resolution}x{resolution}')
+    print(f'k = {k}')
+    print(f'smoothness_weight = {smoothness_weight:.4f}')
+
+    print('\n> SPERM_XY_ROTATED_CENTERED')
+    main(filename='../data/sperm_xy_rotated_centered.txt',
+         grid_resolution=resolution,
+         number_of_vector_fields=k,
+         smoothness_weight=smoothness_weight,
+         output_directory='../output/')
+
+    # print('\n> SPERM_XY')
+    # main(filename='../data/sperm_xy.txt',
+    #      grid_resolution=resolution,
+    #      number_of_vector_fields=k,
+    #      smoothness_weight=smoothness_weight,
+    #      output_directory='../output/')
+    #
+    # print('\n> SPERM_XY_CENTERED')
+    # main(filename='../data/sperm_xy_centered.txt',
+    #      grid_resolution=resolution,
+    #      number_of_vector_fields=k,
+    #      smoothness_weight=smoothness_weight,
+    #      output_directory='../output/')
+    #
+    # print('\n> SPERM_XY_TRANSLATE_MODIFIED')
+    # main(filename='../data/sperm_xy_translate_modified.txt',
+    #      grid_resolution=resolution,
+    #      number_of_vector_fields=k,
+    #      smoothness_weight=smoothness_weight,
+    #      output_directory='../output/')
+    #
+    # print('\n> SPERM_XY_ROTATED')
+    # main(filename='../data/sperm_xy_rotated.txt',
+    #      grid_resolution=resolution,
+    #      number_of_vector_fields=k,
+    #      smoothness_weight=smoothness_weight,
+    #      output_directory='../output/')
+
+
 if __name__ == "__main__":
-    for i_r, resolution in enumerate([3, 4, 5, 6, 7]):  # todo: add 8, 9, 10
-        for i_k, k in enumerate([2, 3, 4, 5, 6, 7]):  # todo: add 8, 9
-            for i_s, smoothness_weight in enumerate([0.005, 0.01, 0.025, 0.04, 0.055, 0.07, 0.1]):  # todo: add 0.001, 0.0005, 0.0001
 
-                print('\n'+'#'*100)
-                print(f'{(i_r+1)*(i_k+1)*(i_s+1)} EXPERIMENT')
-                print(f'resolution = {resolution}')
-                print(f'k = {k}')
-                print(f'smoothness_weight = {smoothness_weight}')
+    # SEARCHING RESULTS IN PARAMETER SPACE
+    resolution_space = [3, 4, 5, 6, 7, 8, 9, 10]
+    k_space = [2, 3, 4, 5, 6, 7]
+    smoothness_weight_space = [0.0001, 0.0005, 0.0015, 0.0050, 0.0100, 0.0250, 0.0400, 0.0700, 0.1000]
 
-                print('\nsperm_xy'.upper())
-                main(filename='../data/sperm_xy.txt', grid_resolution=resolution, number_of_vector_fields=k, smoothness_weight=smoothness_weight, output_directory='../output/')
-                print('\nsperm_xy_translate_modified'.upper())
-                main(filename='../data/sperm_xy_translate_modified.txt', grid_resolution=resolution, number_of_vector_fields=k, smoothness_weight=smoothness_weight, output_directory='../output/')
-                print('\nsperm_xy_rotated'.upper())
-                main(filename='../data/sperm_xy_rotated.txt', grid_resolution=resolution, number_of_vector_fields=k, smoothness_weight=smoothness_weight, output_directory='../output/')
+    parameter_space = [
+        (r, k, s)
+        for r in resolution_space
+        for k in k_space
+        for s in smoothness_weight_space
+    ]
+
+    total = len(parameter_space)
+
+    # attach experiment IDs
+    tasks = [
+        (i + 1, total, r, k, s)
+        for i, (r, k, s) in enumerate(parameter_space)
+    ]
+
+    # use all cores (or limit like Pool(4))
+    with Pool(cpu_count()) as p:
+        p.map(run_experiment, tasks)

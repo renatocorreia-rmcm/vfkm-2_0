@@ -16,13 +16,14 @@ vector_field_type = tuple[list[float], list[float]]  # 2uple of axis
 curve_type = tuple[list[float], list[float], list[float]]  # 3ple of x, y, t lists
 
 
-# todo: estatísticas sobre as velocidades de cada cluster
+# todo: fazer colorbar e colorrange ser relativa a cluster inteiro
+# todo: estatísticas sobre as velocidades de cada cluster  # colorir curva por velocidade
+# todo: plotar dataset no diretório do dataset somente, não em cada experimento (e sempre testa se já existe)
 
 # todo: include colormesh plots (background of something ?)
 
 # todo: create own dataset variation: translate trajectories my its average position. so on clustering, we get the best of its rotation tendencies
-# todo: may test some propposital alisaing on trajectories, reading then with a stepfactor traj = traj[::s]
-# may induce some average trajectory
+# todo: may test some propposital alisaing on trajectories, reading then with a stepfactor traj = traj[::s]  # may induce some average trajectory
 
 
 class Visualizer:
@@ -284,28 +285,40 @@ class Visualizer:
     # SAVERS
 
     def save_vector_fields(self, resolution: tuple[int, int]):
-
         X = np.linspace(self.bounding_box['x_min'], self.bounding_box['x_max'], resolution[0])
-        Y = np.linspace(self.bounding_box['y_min'], self.bounding_box['y_max'], resolution[1])
+        Y = np.linspace( self.bounding_box['y_min'], self.bounding_box['y_max'], resolution[1])
         X, Y = np.meshgrid(X, Y)
 
-        for i, resampled_vector_field in enumerate(self.resample_vector_fields(resolution)):
+        resampled_vector_fields = self.resample_vector_fields(resolution)
+
+        all_colors = [
+            np.hypot(U, V)
+            for U, V in resampled_vector_fields
+        ]
+        colors_min = min(np.min(c) for c in all_colors)
+        colors_max = max(np.max(c) for c in all_colors)
+
+        # normalização global compartilhada - cor de cada vetor é relativa a todos os campos vetorias, e não so o que ele pertence
+        global_norm = mcolors.Normalize(vmin=colors_min, vmax=colors_max)
+
+        cmap = cm.viridis
+
+        for i, (U, V) in enumerate(resampled_vector_fields):
             fig, ax = self.get_plot(title=f'vector field {i + 1} of {self.k}')
             ax.set_facecolor('black')
 
-            U, V = resampled_vector_field
-
+            # magnitude deste campo
             color = np.hypot(U, V)
 
-            ax.quiver(X, Y, U, V, color, cmap='viridis')
+            # quiver usando escala global
+            ax.quiver(X, Y, U, V, color, cmap=cmap, norm=global_norm)
 
-            norm = mcolors.Normalize(vmin=np.min(color), vmax=np.max(color))
-            cmap = cm.viridis
+            # colorbar também global
+            sm = cm.ScalarMappable(norm=global_norm, cmap=cmap)
+            sm.set_array([])
 
-            # colorbar
-            sm = cm.ScalarMappable(norm=norm, cmap=cmap)
             colorbar = plt.colorbar(sm, ax=ax, label="speed")
-            colorbar.set_ticks([np.min(color), np.average(color), np.max(color)])
+            colorbar.set_ticks([colors_min, (colors_min + colors_max) / 2, colors_max])  # todo: improve
             colorbar.ax.yaxis.set_major_formatter(FormatStrFormatter('%.3f'))
 
             plt.savefig(self.experiment_directory + f'vector_field_{i}.png', dpi=150)
