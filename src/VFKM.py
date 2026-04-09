@@ -165,7 +165,7 @@ class VFKM:
 
             if total_change == 0:  # convergence
 
-                print(f"\nConverged in {i} iterations.")
+                #print(f"\nConverged in {i} iterations.")
 
                 return clusters
 
