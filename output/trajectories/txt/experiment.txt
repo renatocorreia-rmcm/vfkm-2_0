@@ -1,4 +1,0 @@
-../data/trajectories.txt
--1 r
-r r_0
-r r_1

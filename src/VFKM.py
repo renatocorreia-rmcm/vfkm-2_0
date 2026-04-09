@@ -119,8 +119,8 @@ class VFKM:
         total_error: float = float('inf')
 
         for i in range(number_of_iterations):
-            print(f"\n{i:02d} iteration")
-            print(f"Before optimization: {total_error}")
+            print(f"{i:02d} iteration", end=" - ")
+            #print(f"Before optimization: {total_error}")
 
             """
                 OPTMIZE
@@ -138,7 +138,7 @@ class VFKM:
                 total_curve_length=total_curve_length,
                 smoothness_weight=smoothness_weight
             )
-            print(f"After optimization: {total_error}")
+            #print(f"After optimization: {total_error}")
 
             """
                 ASSIGN
@@ -156,7 +156,7 @@ class VFKM:
                 smoothness_weight=smoothness_weight
             )
 
-            print(f"After assignment: {total_error}")
+            #print(f"After assignment: {total_error}")
             print(f"Changes: {total_change}")
 
             repopulate_all_empty_cluster_by_random(
@@ -165,11 +165,11 @@ class VFKM:
 
             if total_change == 0:  # convergence
 
-                print(f"Converged in {i} iterations.")
+                print(f"\nConverged in {i} iterations.")
 
                 return clusters
 
-        print(f"iteration limit reached ({number_of_iterations} iterations).")
+        print(f"\niteration limit reached ({number_of_iterations} iterations).")
         return clusters
 
 

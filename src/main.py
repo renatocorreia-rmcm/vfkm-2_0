@@ -1,3 +1,4 @@
+import shutil
 from pathlib import Path
 
 import numpy as np
@@ -88,23 +89,34 @@ import os
 
 
 def save_experiment(
+        experiment_name: str,
         k: int, grid_resolution: tuple[int, int], smoothness_weight: float,
         output_directory: str, current_file_loaded: str, root_cluster: Cluster
 ):
     """
-    save files in experiment_directory = output_directory/<current_file_loaded_name>/
+    note: an experiment is the running of a dataset with a specif set of arguments
+
+    save files in experiment_directory = output_directory/<current_file_loaded_name>/<experiment_name>/
     this allows to keep multiple experiments results at the same time
     """
 
-    experiment_directory = output_directory + current_file_loaded.split('/')[-1][:-4] + '/'
-    print(f'Saving experiment at {experiment_directory}')
+    experiment_directory = output_directory + current_file_loaded.split('/')[-1][:-4] + f'/{experiment_name}/'
+    print(f"Saving experiment at {experiment_directory}")
 
+    # delete experiment_path directory
+    if Path(experiment_directory).exists():
+        print(f"overwriting (recreating) already existent {experiment_directory}")
+        shutil.rmtree(Path(experiment_directory))
+
+    # (re)create experiment_path directory
     Path(experiment_directory+'txt/').mkdir(parents=True, exist_ok=True)
 
-    with open(experiment_directory+'txt/visualizer.txt', 'w') as visualizer_file:
-        visualizer_file.write(f'{grid_resolution[0]} {grid_resolution[1]}\n')
-        visualizer_file.write(f'{k}\n')
-        visualizer_file.write(f'{smoothness_weight}\n')
+    with open(experiment_directory+'arguments.txt', 'w') as visualizer_file:
+        # assume there's no need to store output_directory and filename(dataset) in here,
+        # because to found this file you need this info already
+        visualizer_file.write(f'grid_resolution: {grid_resolution[0]} {grid_resolution[1]}\n')
+        visualizer_file.write(f'amount_of_clusters: {k}\n')
+        visualizer_file.write(f'smoothness_weight: {smoothness_weight}\n')
 
     # Create experiment file
     experiment_path = experiment_directory + 'txt/experiment.txt'
@@ -184,12 +196,20 @@ def init_experiment(
     return paths, grid, root_cluster
 
 
-def main():
+# todo: implement hierarquical clustering
+def main(
+        filename: str,
+        grid_resolution: int,
+        number_of_vector_fields: int,
+        smoothness_weight: float,
+        output_directory: str
+):
     """
 	arguments:
 		trajectoryFile gridResolution numberOfVectorFields smoothnessWeight outputDirectory
 	"""
 
+    """
     # check arguments
     right_number_of_parameters = 6
     if len(sys.argv) != right_number_of_parameters:  # aslo check type and file existence
@@ -202,6 +222,7 @@ def main():
     number_of_vector_fields = int(sys.argv[3])
     smoothness_weight = float(sys.argv[4])
     output_directory = sys.argv[5]
+    """
 
     # initialize parameters
     paths: list[PolygonalPath]
@@ -227,7 +248,10 @@ def main():
 
     root_cluster.children = clusters
 
+    expeperiment_name = f"Experiment_{grid.get_resolution_x()}x{grid.get_resolution_y()}_{number_of_vector_fields}_{smoothness_weight}"
     save_experiment(
+        experiment_name=expeperiment_name,
+
         grid_resolution=(grid.get_resolution_x(), grid.get_resolution_y()),
         k=number_of_vector_fields,
         smoothness_weight=smoothness_weight,
@@ -238,8 +262,8 @@ def main():
     )
 
     print("Loading Visualizer...")
-    v = Visualizer(output_directory, filename)
-    v.save_all((12, 12))
+    v = Visualizer(output_directory, filename, expeperiment_name)
+    v.save_all((10, 10))  # todo: softcode this
 
 
 """ debug arguments: ../data/synthetic.txt 3 2 0.05 ../output/
@@ -250,6 +274,22 @@ e não editores de texto, como VScode, que acessam o endereço a partir do arqui
 
 rodar no VScode exige reescrever as importações em cada arquivo
 """
-# todo: hierarquical clustering
+
 if __name__ == "__main__":
-    main()
+    for i_r, resolution in enumerate([3, 4, 5, 6, 7]):
+        for i_k, k in enumerate([2, 3, 4, 5, 6, 7]):
+            for i_s, smoothness_weight in enumerate([0.005, 0.01, 0.025, 0.04, 0.055, 0.07, 0.1]):
+
+                print('#'*40)
+                print(f'{(i_r+1)*(i_k+1)*(i_s+1)} EXPERIMENT')
+                print(f'resolution = {resolution}')
+                print(f'k = {k}')
+                print(f'smoothness_weight = {smoothness_weight}')
+                print()
+
+                print('sperm_xy'.upper())
+                main(filename='../data/sperm_xy.txt', grid_resolution=resolution, number_of_vector_fields=k, smoothness_weight=smoothness_weight, output_directory='../output/')
+                print('sperm_xy_translate_modified'.upper())
+                main(filename='../data/sperm_xy_translate_modified.txt', grid_resolution=resolution, number_of_vector_fields=k, smoothness_weight=smoothness_weight, output_directory='../output/')
+                print('sperm_xy_rotated'.upper())
+                main(filename='../data/sperm_xy_rotated.txt', grid_resolution=resolution, number_of_vector_fields=k, smoothness_weight=smoothness_weight, output_directory='../output/')

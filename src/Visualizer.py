@@ -8,28 +8,28 @@ import numpy.typing as npt
 
 import matplotlib.cm as cm
 import matplotlib.colors as mcolors
+from matplotlib.ticker import FormatStrFormatter
 
 # basic types
 
 vector_field_type = tuple[list[float], list[float]]  # 2uple of axis
 curve_type = tuple[list[float], list[float], list[float]]  # 3ple of x, y, t lists
 
-# todo: allow to same dataset have multiple experiments saved. So can apply grid search on (k, resolution, smoothness weight)
-# clean old directory garbage when overwriting
 
-# todo: legendar cores
 # todo: estatísticas sobre as velocidades de cada cluster
 
 # todo: include colormesh plots (background of something ?)
-# todo: make all vectors unit vectors (identify speed by color only)
+
+# todo: may test some propposital alisaing on trajectories, reading then with a stepfactor traj = traj[::s]
+# may induce some average trajectory
 
 
 class Visualizer:
-
     output_directory: str
     current_file_loaded: str
     dataset_path: str
     dataset_name: str
+    experiment_name: str
 
     grid_resolution: tuple[int, int]
     k: int
@@ -47,25 +47,26 @@ class Visualizer:
 
     # CONSTRUCTOR
 
-    def __init__(self, output_directory: str, current_file_loaded: str):
+    def __init__(self, output_directory: str, current_file_loaded: str, experiment_name: str):
 
-        self.current_file_loaded: str = current_file_loaded
+        self.output_directory = output_directory
+        self.current_file_loaded = current_file_loaded
+        self.experiment_name = experiment_name
 
         self.dataset_path = current_file_loaded
 
         self.dataset_name: str = current_file_loaded.split('/')[-1][:-4]
 
-        self.experiment_directory = output_directory + current_file_loaded.split('/')[-1][:-4] + '/'
+        self.experiment_directory = output_directory + current_file_loaded.split('/')[-1][:-4] + f'/{experiment_name}/'
         print(f"Saving images at {self.experiment_directory}")
 
-        with open(self.experiment_directory + 'txt/visualizer.txt', 'r') as file:
-            line = file.readline().split()
+        with open(self.experiment_directory + 'arguments.txt', 'r') as file:
+            line = file.readline().split(': ')[-1].split()
             self.grid_resolution = (int(line[0]), int(line[1]))
 
-            self.k = int(file.readline())
+            self.k = int(file.readline().split(': ')[-1])
 
-            self.smoothness_weight = float(file.readline())
-
+            self.smoothness_weight = float(file.readline().split(': ')[-1])
 
         # load cluster vector fields
 
@@ -137,7 +138,8 @@ class Visualizer:
                 if len(header) < 6:
                     raise ValueError("Invalid bounding box line in input file")
 
-                bounding_box["x_min"], bounding_box["x_max"], bounding_box["y_min"], bounding_box["y_max"], bounding_box["t_min"], bounding_box["t_max"] = map(float, header)
+                bounding_box["x_min"], bounding_box["x_max"], bounding_box["y_min"], bounding_box["y_max"], \
+                bounding_box["t_min"], bounding_box["t_max"] = map(float, header)
 
                 curve: curve_type = ([], [], [])  # curve = x_axis, y_axis, t_axis
                 curves: list[curve_type] = []
@@ -211,7 +213,6 @@ class Visualizer:
         resampled_vector_fields: list[vector_field_type] = []
 
         for vector_field in self.vector_fields:
-
             U_flat, V_flat = vector_field
 
             new_w, new_h = new_vector_field_resolution
@@ -279,8 +280,6 @@ class Visualizer:
 
         return fig, ax
 
-
-
     # SAVERS
 
     def save_vector_fields(self, resolution: tuple[int, int]):
@@ -290,11 +289,23 @@ class Visualizer:
         X, Y = np.meshgrid(X, Y)
 
         for i, resampled_vector_field in enumerate(self.resample_vector_fields(resolution)):
-            fig, ax = self.get_plot(title=f'vector field {i+1} of {self.k}')
+            fig, ax = self.get_plot(title=f'vector field {i + 1} of {self.k}')
+            ax.set_facecolor('black')
 
             U, V = resampled_vector_field
 
-            ax.quiver(X, Y, U, V, np.hypot(U, V), cmap='Wistia')
+            color = np.hypot(U, V)
+
+            ax.quiver(X, Y, U, V, color, cmap='viridis')
+
+            norm = mcolors.Normalize(vmin=np.min(color), vmax=np.max(color))
+            cmap = cm.viridis
+
+            # colorbar
+            sm = cm.ScalarMappable(norm=norm, cmap=cmap)
+            colorbar = plt.colorbar(sm, ax=ax, label="speed")
+            colorbar.set_ticks([np.min(color), np.average(color), np.max(color)])
+            colorbar.ax.yaxis.set_major_formatter(FormatStrFormatter('%.3f'))
 
             plt.savefig(self.experiment_directory + f'vector_field_{i}.png', dpi=150)
 
@@ -305,7 +316,8 @@ class Visualizer:
         X, Y = np.meshgrid(X, Y)
 
         for i, resampled_vector_field in enumerate(self.resample_vector_fields(resolution)):
-            fig, ax = self.get_plot(title=f"streamplot {i+1} of {self.k}")
+            fig, ax = self.get_plot(title=f"streamplot {i + 1} of {self.k}")
+            ax.set_facecolor('black')
 
             U, V = resampled_vector_field
 
@@ -313,7 +325,19 @@ class Visualizer:
 
             U = np.array(U).reshape(ny, nx)
             V = np.array(V).reshape(ny, nx)
-            ax.streamplot(X, Y, U, V, color=np.hypot(U, V), cmap='Wistia')
+
+            color = np.hypot(U, V)
+
+            ax.streamplot(X, Y, U, V, color=color, cmap='viridis')
+
+            norm = mcolors.Normalize(vmin=np.min(color), vmax=np.max(color))
+            cmap = cm.viridis
+
+            # colorbar
+            sm = cm.ScalarMappable(norm=norm, cmap=cmap)
+            colorbar = plt.colorbar(sm, ax=ax, label="speed")
+            colorbar.set_ticks([np.min(color), np.average(color), np.max(color)])
+            colorbar.ax.yaxis.set_major_formatter(FormatStrFormatter('%.3f'))
 
             plt.savefig(self.experiment_directory + f'stream_{i}.png', dpi=200)
 
@@ -348,7 +372,8 @@ class Visualizer:
 
         for i, cluster in enumerate(self.clusters_curves):
 
-            fig, ax = self.get_plot(f'curves {i+1} of {self.k}')
+            fig, ax = self.get_plot(f'curves {i + 1} of {self.k}')
+            ax.set_facecolor('black')
 
             error_bounding = self.clusters_errors_bounds[i]
 
@@ -356,8 +381,8 @@ class Visualizer:
             cmap = cm.viridis
 
             # colorbar
-            # sm = cm.ScalarMappable(norm=norm, cmap=cmap)
-            # plt.colorbar(sm, ax=ax, label="Curve Error")
+            sm = cm.ScalarMappable(norm=norm, cmap=cmap)
+            colorbar = plt.colorbar(sm, ax=ax, label="Curve Error")
 
             for curve in cluster:
                 curve_cords = curve[0]
@@ -368,7 +393,10 @@ class Visualizer:
             plt.savefig(self.experiment_directory + f'curves_{i}.png')
 
             if vf_resolution:
-                ax.quiver(meshgrid[0], meshgrid[1], resampled_vector_fields[i][0], resampled_vector_fields[i][1], zorder=2)
+                U = resampled_vector_fields[i][0]
+                V = resampled_vector_fields[i][1]
+                color = np.hypot(U, V)
+                ax.quiver(meshgrid[0], meshgrid[1], U, V, color='w', zorder=2)
                 plt.title(f'cluster {i + 1} of {self.k}')
                 plt.savefig(self.experiment_directory + f'cluster_{i}.png')
 
@@ -382,5 +410,6 @@ class Visualizer:
 
 
 if __name__ == '__main__':
-    v = Visualizer(current_file_loaded='../data/trajectories.txt', output_directory='../output/')
-    v.save_all((12, 12))
+    v = Visualizer(current_file_loaded='../data/sperm_xy_rotated.txt', output_directory='../output/',
+                   experiment_name='Experiment_4x4_5_0.02')
+    v.save_all((10, 7))
