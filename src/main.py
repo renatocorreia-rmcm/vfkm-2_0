@@ -287,6 +287,9 @@ rodar no VScode exige reescrever as importações em cada arquivo
 # todo: histograms, graphs, for trajectories speed and length in each cluster
 # todo: track static trajectories. where did they went ?
 
+
+# EXPERIMENTS IDEAS
+
 # todo: test:
 #       trajectories_CENTERED: k=12: [slow, fast] x [forward, backward] x [horizontal, vertical, circular]
 #       trajectories_ROTADED_CENTERED: k=4: [slow, fast] x [horizontal, cw, anti-cw]
@@ -303,6 +306,8 @@ rodar no VScode exige reescrever as importações em cada arquivo
 #   mirror anti-cw trajectories, merge with cw
 #   then would have 2 mother clusters, straight and cyclical
 #   apply vfkm again
+
+# todo: could pre-define perfect circular vf, and perfect straight vf to filter trajectories before hierarquical clustering
 
 from multiprocessing import Pool, cpu_count
 
