@@ -285,84 +285,54 @@ e não editores de texto, como VScode, que acessam o endereço a partir do arqui
 rodar no VScode exige reescrever as importações em cada arquivo
 """
 
-# todo: USE HIERARQUICAL CLUSTERING
-# if __name__ == "__main__":
-#
-#     # SEARCHING RESULTS IN PARAMETER SPACE
-#
-#     resolution_space = [3, 4, 5, 6, 7, 8, 9, 10]
-#     k_space = [2, 3, 4, 5, 6, 7, 8, 9]
-#     smoothness_weight_space = [0.0001, 0.0005, 0.0015, 0.0050, 0.0100, 0.0250, 0.0400, 0.0700, 0.1000]
-#
-#     parameter_space_size = len(resolution_space)*len(k_space)*len(smoothness_weight_space)
-#
-#     experiment_counter = 0
-#     for i_r, resolution in enumerate(resolution_space):
-#         for i_k, k in enumerate(k_space):
-#             for i_s, smoothness_weight in enumerate(smoothness_weight_space):
-#                 experiment_counter+=1
-#
-#                 print('\n'+'#'*100)
-#                 print(f'EXPERIMENT {experiment_counter} of {parameter_space_size}')
-#                 print(f'resolution = {resolution}x{resolution}')
-#                 print(f'k = {k}')
-#                 print(f'smoothness_weight = {smoothness_weight:.4f}')
-#
-#                 print('\n> sperm_xy'.upper())
-#                 main(filename='../data/sperm_xy.txt', grid_resolution=resolution, number_of_vector_fields=k, smoothness_weight=smoothness_weight, output_directory='../output/')
-#                 print('\n> sperm_xy_translate_modified'.upper())
-#                 main(filename='../data/sperm_xy_translate_modified.txt', grid_resolution=resolution, number_of_vector_fields=k, smoothness_weight=smoothness_weight, output_directory='../output/')
-#                 print('\n> sperm_xy_rotated'.upper())
-#                 main(filename='../data/sperm_xy_rotated.txt', grid_resolution=resolution, number_of_vector_fields=k, smoothness_weight=smoothness_weight, output_directory='../output/')
-
-
-
+# todo: IMPLEMENT AND APPLY HIERARQUICAL CLUSTERING
+# todo: test: trajectories_CENTERED: k=12: [slow, fast] x [foward, backward] x [horizontal, vertical, circular]
+#       test: trajectories_ROTADED_CENTERED: k=4: [slow, fast] x [horizontal, circular]
+#       desenvolver esse raciocinio pra preparar apresentação
+#       relacionar com cluster hierarquico
+#           k = a*b pode ser alcaçado com k=a*b ou k=a de depois herda com k=b
 
 from multiprocessing import Pool, cpu_count
 
+
 def run_experiment(args):
-    exp_id, total, resolution, k, smoothness_weight = args
+    exp_id, number_of_experiments, resolution, k, smoothness_weight = args
 
     print('\n' + '#' * 100)
-    print(f'EXPERIMENT {exp_id} of {total}')
+    print(f'STARTING EXPERIMENT {exp_id} of {number_of_experiments}:')
     print(f'resolution = {resolution}x{resolution}')
     print(f'k = {k}')
     print(f'smoothness_weight = {smoothness_weight:.4f}')
 
-    print('\n> SPERM_XY_ROTATED_CENTERED')
     main(filename='../data/sperm_xy_rotated_centered.txt',
          grid_resolution=resolution,
          number_of_vector_fields=k,
          smoothness_weight=smoothness_weight,
          output_directory='../output/')
 
-    # print('\n> SPERM_XY')
-    # main(filename='../data/sperm_xy.txt',
-    #      grid_resolution=resolution,
-    #      number_of_vector_fields=k,
-    #      smoothness_weight=smoothness_weight,
-    #      output_directory='../output/')
-    #
-    # print('\n> SPERM_XY_CENTERED')
-    # main(filename='../data/sperm_xy_centered.txt',
-    #      grid_resolution=resolution,
-    #      number_of_vector_fields=k,
-    #      smoothness_weight=smoothness_weight,
-    #      output_directory='../output/')
-    #
-    # print('\n> SPERM_XY_TRANSLATE_MODIFIED')
-    # main(filename='../data/sperm_xy_translate_modified.txt',
-    #      grid_resolution=resolution,
-    #      number_of_vector_fields=k,
-    #      smoothness_weight=smoothness_weight,
-    #      output_directory='../output/')
-    #
-    # print('\n> SPERM_XY_ROTATED')
-    # main(filename='../data/sperm_xy_rotated.txt',
-    #      grid_resolution=resolution,
-    #      number_of_vector_fields=k,
-    #      smoothness_weight=smoothness_weight,
-    #      output_directory='../output/')
+    main(filename='../data/sperm_xy_centered.txt',
+         grid_resolution=resolution,
+         number_of_vector_fields=k,
+         smoothness_weight=smoothness_weight,
+         output_directory='../output/')
+
+    main(filename='../data/sperm_xy.txt',
+         grid_resolution=resolution,
+         number_of_vector_fields=k,
+         smoothness_weight=smoothness_weight,
+         output_directory='../output/')
+
+    main(filename='../data/sperm_xy_translate_modified.txt',
+         grid_resolution=resolution,
+         number_of_vector_fields=k,
+         smoothness_weight=smoothness_weight,
+         output_directory='../output/')
+
+    main(filename='../data/sperm_xy_rotated.txt',
+         grid_resolution=resolution,
+         number_of_vector_fields=k,
+         smoothness_weight=smoothness_weight,
+         output_directory='../output/')
 
 
 if __name__ == "__main__":
@@ -387,6 +357,6 @@ if __name__ == "__main__":
         for i, (r, k, s) in enumerate(parameter_space)
     ]
 
-    # use all cores (or limit like Pool(4))
+    # use all cores
     with Pool(cpu_count()) as p:
         p.map(run_experiment, tasks)
