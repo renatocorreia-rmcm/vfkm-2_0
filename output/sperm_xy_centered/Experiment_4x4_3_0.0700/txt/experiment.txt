@@ -1,0 +1,5 @@
+../data/sperm_xy_centered.txt
+-1 r
+r r_0
+r r_1
+r r_2
