@@ -1,5 +1,6 @@
 import copy
 from math import inf
+from pathlib import Path
 
 import matplotlib
 import matplotlib.pyplot as plt
@@ -16,14 +17,14 @@ vector_field_type = tuple[list[float], list[float]]  # 2uple of axis
 curve_type = tuple[list[float], list[float], list[float]]  # 3ple of x, y, t lists
 
 
-# todo: fazer colorbar e colorrange ser relativa a cluster inteiro
 # todo: estatísticas sobre as velocidades de cada cluster  # colorir curva por velocidade
-# todo: plotar dataset no diretório do dataset somente, não em cada experimento (e sempre testa se já existe)
+
+# todo: merge save_vector_fields() and save_streamplots() ?
 
 # todo: include colormesh plots (background of something ?)
 
-# todo: create own dataset variation: translate trajectories my its average position. so on clustering, we get the best of its rotation tendencies
-# todo: may test some propposital alisaing on trajectories, reading then with a stepfactor traj = traj[::s]  # may induce some average trajectory
+# todo: MAYBE test some propposital alisaing on trajectories, reading then with a stepfactor traj = traj[::s]  # may induce some average trajectory
+# this may be kind of uselles and just optimize the process while introducing a little more error
 
 
 class Visualizer:
@@ -60,7 +61,7 @@ class Visualizer:
         self.dataset_name: str = current_file_loaded.split('/')[-1][:-4]
 
         self.experiment_directory = output_directory + current_file_loaded.split('/')[-1][:-4] + f'/{experiment_name}/'
-        print(f"Saving images at {self.experiment_directory}")
+        #print(f"Saving images at {self.experiment_directory}")
 
         with open(self.experiment_directory + 'arguments.txt', 'r') as file:
             line = file.readline().split(': ')[-1].split()
@@ -318,7 +319,7 @@ class Visualizer:
             sm.set_array([])
 
             colorbar = plt.colorbar(sm, ax=ax, label="speed")
-            colorbar.set_ticks([colors_min, (colors_min + colors_max) / 2, colors_max])  # todo: improve
+            colorbar.set_ticks([colors_min, np.mean(color), colors_max])
             colorbar.ax.yaxis.set_major_formatter(FormatStrFormatter('%.3f'))
 
             plt.savefig(self.experiment_directory + f'vector_field_{i}.png', dpi=150)
@@ -330,7 +331,20 @@ class Visualizer:
         Y = np.linspace(self.bounding_box['y_min'], self.bounding_box['y_max'], resolution[1])
         X, Y = np.meshgrid(X, Y)
 
-        for i, resampled_vector_field in enumerate(self.resample_vector_fields(resolution)):
+        resampled_vector_fields = self.resample_vector_fields(resolution)
+
+        all_colors = [
+            np.hypot(U, V)
+            for U, V in resampled_vector_fields
+        ]
+        colors_min = min(np.min(c) for c in all_colors)
+        colors_max = max(np.max(c) for c in all_colors)
+
+        # normalização global compartilhada - cor de cada vetor é relativa a todos os campos vetorias, e não so o que ele pertence
+        global_norm = mcolors.Normalize(vmin=colors_min, vmax=colors_max)
+        cmap = cm.viridis
+
+        for i, resampled_vector_field in enumerate(resampled_vector_fields):
             fig, ax = self.get_plot(title=f"streamplot {i + 1} of {self.k}")
             ax.set_facecolor('black')
 
@@ -343,15 +357,14 @@ class Visualizer:
 
             color = np.hypot(U, V)
 
-            ax.streamplot(X, Y, U, V, color=color, cmap='viridis')
+            ax.streamplot(X, Y, U, V, color=color, cmap='viridis', norm=global_norm)
 
-            norm = mcolors.Normalize(vmin=np.min(color), vmax=np.max(color))
             cmap = cm.viridis
 
             # colorbar
-            sm = cm.ScalarMappable(norm=norm, cmap=cmap)
+            sm = cm.ScalarMappable(norm=global_norm, cmap=cmap)
             colorbar = plt.colorbar(sm, ax=ax, label="speed")
-            colorbar.set_ticks([np.min(color), np.average(color), np.max(color)])
+            colorbar.set_ticks([colors_min, np.mean(color), colors_max])
             colorbar.ax.yaxis.set_major_formatter(FormatStrFormatter('%.3f'))
 
             plt.savefig(self.experiment_directory + f'stream_{i}.png', dpi=200)
@@ -372,7 +385,7 @@ class Visualizer:
                 ax.plot(curve[0], curve[1])
         """
 
-        plt.savefig(self.experiment_directory + 'dataset.png')
+        plt.savefig(self.output_directory + self.dataset_name + '/dataset.png')
         plt.close(fig)
 
     def save_clusters_curves(self, vf_resolution: tuple[int, int] = None):
@@ -422,12 +435,14 @@ class Visualizer:
 
     def save_all(self, vf_resolution: tuple[int, int] = None):
         self.save_vector_fields(vf_resolution)
-        self.save_dataset()
+        if not Path(self.output_directory + self.dataset_name + '/dataset.png').exists():
+            print('saving dataset')
+            self.save_dataset()
         self.save_clusters_curves(vf_resolution)
         self.save_streams(vf_resolution)
 
 
 if __name__ == '__main__':
-    v = Visualizer(current_file_loaded='../data/sperm_xy_rotated.txt', output_directory='../output/',
-                   experiment_name='Experiment_4x4_5_0.02')
+    v = Visualizer(current_file_loaded='../data/sperm_xy_rotated_centered.txt', output_directory='../output/',
+                   experiment_name='Experiment_3x3_2_0.0700')
     v.save_all((10, 7))
