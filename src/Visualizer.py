@@ -17,14 +17,12 @@ vector_field_type = tuple[list[float], list[float]]  # 2uple of axis
 curve_type = tuple[list[float], list[float], list[float]]  # 3ple of x, y, t lists
 
 
-# todo: estatísticas sobre as velocidades de cada cluster  # colorir curva por velocidade
+# todo: histogramas e graficos sobre velocidade e comprimento das curvas em cada cluster
+#   colorir curva por velocidade
 
 # todo: merge save_vector_fields() and save_streamplots() ?
 
-# todo: include colormesh plots (background of something ?)
-
-# todo: MAYBE test some propposital alisaing on trajectories, reading then with a stepfactor traj = traj[::s]  # may induce some average trajectory
-# this may be kind of uselles and just optimize the process while introducing a little more error
+# todo: colormesh plots (background of something ?)
 
 
 class Visualizer:

@@ -197,7 +197,6 @@ def init_experiment(
     return paths, grid, root_cluster
 
 
-# todo: implement hierarquical clustering
 def main(
         filename: str,
         grid_resolution: int,
@@ -285,12 +284,25 @@ e não editores de texto, como VScode, que acessam o endereço a partir do arqui
 rodar no VScode exige reescrever as importações em cada arquivo
 """
 
-# todo: IMPLEMENT AND APPLY HIERARQUICAL CLUSTERING
-# todo: test: trajectories_CENTERED: k=12: [slow, fast] x [foward, backward] x [horizontal, vertical, circular]
-#       test: trajectories_ROTADED_CENTERED: k=4: [slow, fast] x [horizontal, circular]
+# todo: histograms, graphs, for trajectories speed and length in each cluster
+# todo: track static trajectories. where did they went ?
+
+# todo: test:
+#       trajectories_CENTERED: k=12: [slow, fast] x [forward, backward] x [horizontal, vertical, circular]
+#       trajectories_ROTADED_CENTERED: k=4: [slow, fast] x [horizontal, cw, anti-cw]
+#       more clusters in general also
+#
 #       desenvolver esse raciocinio pra preparar apresentação
 #       relacionar com cluster hierarquico
 #           k = a*b pode ser alcaçado com k=a*b ou k=a de depois herda com k=b
+
+# todo: IMPLEMENT AND APPLY HIERARQUICAL CLUSTERING
+
+# todo: post-processing trajectories_ROTADED_CENTERED:
+#   k=3 -> straight, anti-cw, cw
+#   mirror anti-cw trajectories, merge with cw
+#   then would have 2 mother clusters, straight and cyclical
+#   apply vfkm again
 
 from multiprocessing import Pool, cpu_count
 
@@ -339,7 +351,7 @@ if __name__ == "__main__":
 
     # SEARCHING RESULTS IN PARAMETER SPACE
     resolution_space = [3, 4, 5, 6, 7, 8, 9, 10]
-    k_space = [2, 3, 4, 5, 6, 7]
+    k_space = [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
     smoothness_weight_space = [0.0001, 0.0005, 0.0015, 0.0050, 0.0100, 0.0250, 0.0400, 0.0700, 0.1000]
 
     parameter_space = [
