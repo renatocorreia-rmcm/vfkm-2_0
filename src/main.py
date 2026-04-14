@@ -284,9 +284,6 @@ e não editores de texto, como VScode, que acessam o endereço a partir do arqui
 rodar no VScode exige reescrever as importações em cada arquivo
 """
 
-# todo: histograms, graphs, for trajectories speed and length in each cluster
-# todo: track static trajectories. where did they went ?
-
 
 # EXPERIMENTS IDEAS
 

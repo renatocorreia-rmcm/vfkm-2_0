@@ -19,6 +19,8 @@ curve_type = tuple[list[float], list[float], list[float]]  # 3ple of x, y, t lis
 
 # todo: histogramas e graficos sobre velocidade e comprimento das curvas em cada cluster
 #   colorir curva por velocidade
+# todo: track static trajectories. where did they went ?
+
 
 # todo: merge save_vector_fields() and save_streamplots() ?
 
@@ -111,6 +113,14 @@ class Visualizer:
             return cluster, (min_error, max_error)
 
         def load_all_clusters_indices() -> tuple[list[list[tuple[int, float]]], list[tuple[float, float]]]:
+            """
+            return list of
+            curves indices and errors
+
+            and errors bounds
+
+            for each cluster
+            """
             clusters = []
             error_bounds = []
 
@@ -126,7 +136,10 @@ class Visualizer:
 
         # load all curves
 
-        def load_curves(filename: str) -> tuple[npt.NDArray[curve_type], dict[str, float]]:
+        def load_curves(filename: str) -> tuple[npt.NDArray[curve_type], dict[str, float]]:  # todo: track speed and lenght
+            """
+            return array of curves and bounding box
+            """
             bounding_box: dict[str, float] = {
                 "x_min": +inf, "x_max": -inf,
                 "y_min": +inf, "y_max": -inf,
