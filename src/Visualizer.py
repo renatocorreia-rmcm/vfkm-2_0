@@ -14,8 +14,14 @@ from matplotlib.ticker import FormatStrFormatter
 # basic types
 
 vector_field_type = tuple[list[float], list[float]]  # 2uple of axis
-curve_type = tuple[list[float], list[float], list[float]]  # 3ple of x, y, t lists
+curve_type = tuple[list[float], list[float], list[float], float]  # 3ple of x, y, t lists and geometric length value
 
+
+# todo: OOP visualizable objects - no more nested arrays
+#   attributes can be derived from computable objects or recalculated
+# classes can have static attributes for bounds
+
+# todo fix quiver ploter interpolation resolution
 
 # todo: histogramas e graficos sobre velocidade e comprimento das curvas em cada cluster
 #   colorir curva por velocidade
@@ -42,9 +48,15 @@ class Visualizer:
 
     vector_fields: list[vector_field_type]
 
+    dataset_lengths_bounds: tuple[float, float]
+    dataset_speeds_bounds: tuple[float, float]
+
     clusters_indices: list[list[tuple[int, float]]]  # used only to load self.cluster_curves
     clusters_curves: list[list[tuple[curve_type, float]]]
     clusters_errors_bounds: list[tuple[float, float]]  # min and max error for each cluster
+
+    clusters_lengths_bounds: tuple[float, float]
+    clusters_speeds_bounds: tuple[float, float]
 
     bounding_box: dict[str, float]
 
@@ -136,15 +148,20 @@ class Visualizer:
 
         # load all curves
 
-        def load_curves(filename: str) -> tuple[npt.NDArray[curve_type], dict[str, float]]:  # todo: track speed and lenght
+        def load_curves(filename: str) -> tuple[npt.NDArray[tuple[curve_type, float]], dict[str, float]]:
             """
-            return array of curves and bounding box
+            return array of (curve, length) and bounding box
             """
             bounding_box: dict[str, float] = {
                 "x_min": +inf, "x_max": -inf,
                 "y_min": +inf, "y_max": -inf,
                 "t_min": +inf, "t_max": -inf,
             }
+
+            min_curve_length = float('inf')
+            max_curve_length = float('-inf')
+            min_curve_speed = float('inf')
+            max_curve_speed = float('-inf')
 
             with (open(filename, "r") as file):
                 # read bounding box
@@ -155,46 +172,61 @@ class Visualizer:
                 bounding_box["x_min"], bounding_box["x_max"], bounding_box["y_min"], bounding_box["y_max"], \
                 bounding_box["t_min"], bounding_box["t_max"] = map(float, header)
 
-                curve: curve_type = ([], [], [])  # curve = x_axis, y_axis, t_axis
-                curves: list[curve_type] = []
+                curve: curve_type = ([], [], [], 0)  # curve = x_axis, y_axis, t_axis
+                curves: list[tuple[curve_type, float]] = []
 
                 for line in file:
+
                     tokens = [float(i) for i in line.strip().split()]
                     if len(tokens) < 3:  # missing data (coordinate or timestamp)
                         continue
-
                     x, y, t = map(float, tokens)
 
-                    if x == y == t == 0:  # end of curve (explicit: flag)
-                        if len(curve[0]) >= 2:
-                            curves.append(copy.deepcopy(curve))
-                        for ax in curve:
-                            ax.clear()
-
-                    elif (  # end of curve (implicit: Out of bounding box)
+                    if (  # END OF CURVE
+                            # (implicit: Out of bounding box)
                             x < bounding_box["x_min"] or x > bounding_box["x_max"] or
                             y < bounding_box["y_min"] or y > bounding_box["y_max"] or
                             t < bounding_box["t_min"] or t > bounding_box["t_max"]
+                            or # (explicit: flag)
+                            x == y == t == 0
                     ):
                         if len(curve[0]) >= 2:
-                            curves.append(curve)
+                            curves.append(copy.deepcopy(curve))
 
                         for ax in curve: ax.clear()
 
-                    else:  # valid point
+                        curve_speed = curve_lenght / curve[]
 
-                        if not curve[0]:  # first point in curve
+                        if curve_lenght < min_curve_length:
+                            min_curve_length = curve_lenght
+                        if curve_lenght > max_curve_length:
+                            max_curve_length = curve_lenght
+
+
+
+                        curve_lenght = 0
+
+                    else:  # VALID POINT
+
+                        if not curve[0]:  # FIRST POINT in curve
                             curve[0].append(x)
                             curve[1].append(y)
                             curve[2].append(t)
-                        elif t == curve[2][-1]:  # repeated timestamp
+
+                        elif t == curve[2][-1]:  # REPEATED timestamp
                             continue
-                        elif (  # do not move
-                                x == curve[0][-1] and
-                                y == curve[1][-1]
-                        ):
-                            continue
+
+                        # want to consider static trajectories from now
+                        # elif (  # do not move
+                        #         x == curve[0][-1] and
+                        #         y == curve[1][-1]
+                        # ):
+                        #     continue
+
                         else:  # regular point
+                            curve_lenght += np.hypot(
+                                curve[0][-1] - x, curve[1][-1] - y
+                            )
                             curve[0].append(x)
                             curve[1].append(y)
                             curve[2].append(t)
@@ -386,6 +418,8 @@ class Visualizer:
         fig, ax = self.get_plot(title=f"{self.dataset_name}")
 
         # plot in index order
+        # todo: map color to length (curve[3])
+        # todo: map color to speed (curve[3]/curve[2][-1])
         for curve in self.curves:
             ax.plot(curve[0], curve[1])
         """

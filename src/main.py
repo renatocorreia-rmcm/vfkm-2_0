@@ -350,11 +350,21 @@ def run_experiment(args):
 
 
 if __name__ == "__main__":
+    # todo: run default experiment for readme
+
+    # todo: modularize also dataset on experiment. Better to parallelize tiny amount of experiments
+
+    # todo: tirar visualizer de main()
+    #   chamar main() visualizer() com paramteros em evidencia
+    #   melhor de subir testes na nuvem sem imagens
 
     # SEARCHING RESULTS IN PARAMETER SPACE
-    resolution_space = [3, 4, 5, 6, 7, 8, 9, 10]
-    k_space = [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
-    smoothness_weight_space = [0.0001, 0.0005, 0.0015, 0.0050, 0.0100, 0.0250, 0.0400, 0.0700, 0.1000]
+    # resolution_space = [3, 4, 5, 6, 7, 8, 9, 10]
+    # k_space = [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
+    # smoothness_weight_space = [0.0001, 0.0005, 0.0015, 0.0050, 0.0100, 0.0250, 0.0400, 0.0700, 0.1000]
+    resolution_space = [4]
+    k_space = [8]
+    smoothness_weight_space = [0.0015, 0.0050, 0.0100]
 
     parameter_space = [
         (r, k, s)
