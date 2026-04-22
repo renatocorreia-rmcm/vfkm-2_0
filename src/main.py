@@ -74,11 +74,12 @@ def load_curves(filename: str) -> tuple[list[PolygonalPath], dict[str, float]]:
                     curve_contents.append(new_point)
                 elif t == curve_contents[-1].time:  # repeated timestamp
                     continue
-                elif (  # do not move
-                        x == curve_contents[-1].space[0]
-                        and y == curve_contents[-1].space[1]
-                ):
-                    continue
+                # considering static trajectories from now
+                # elif (  # do not move
+                #         x == curve_contents[-1].space[0]
+                #         and y == curve_contents[-1].space[1]
+                # ):
+                #     continue
                 else:  # regular point
                     curve_contents.append(new_point)
 
@@ -270,13 +271,12 @@ def main(
         root_cluster=root_cluster  # first cluster is root
     )
 
-    #print("Loading Visualizer...")
-    v = Visualizer(output_directory, filename, experiment_name)
-    v.save_all((10, 10))  # todo: softcode this
+    # print("Loading Visualizer...")
+    v = Visualizer(output_directory=output_directory, dataset_path=filename, experiment_name=experiment_name)
+    v.save_all((10, 10))  # todo: softcode vf resample resolution
 
 
-""" debug arguments: ../data/synthetic.txt 3 2 0.05 ../output/
-
+""" 
 os endereços usados na modularização desse código 
 foram escritos para IDEs, como PyCharm, onde cada arquivo acessa o endereço importado a partir da root do projeto,
 e não editores de texto, como VScode, que acessam o endereço a partir do arquivo atual.
@@ -368,9 +368,9 @@ if __name__ == "__main__":
 
     parameter_space = [
         (r, k, s)
-        for r in resolution_space
-        for k in k_space
         for s in smoothness_weight_space
+        for k in k_space
+        for r in resolution_space
     ]
 
     total = len(parameter_space)
