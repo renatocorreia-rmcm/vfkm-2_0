@@ -27,7 +27,13 @@ and demonstrate how vector-field k-means can be used to mine patterns from traje
 ### Clusters found
 
 <div style="display: flex; gap: 10px;">
-  <img width="48%" alt="cluster_0" src="output/synthetic/cluster_1.png" />
-  <img width="48%" alt="cluster_0" src="output/synthetic/cluster_0.png" />
+  <img width="48%" alt="cluster_0" src="output/synthetic/Experiment_3x3_2_0.0500/cluster_1.png" />
+  <img width="48%" alt="cluster_0" src="output/synthetic/Experiment_3x3_2_0.0500/cluster_0.png" />
 </div>
 
+### Streamplots
+
+<div style="display: flex; gap: 10px;">
+  <img width="48%" alt="cluster_0" src="output/synthetic/Experiment_3x3_2_0.0500/stream_1.png" />
+  <img width="48%" alt="cluster_0" src="output/synthetic/Experiment_3x3_2_0.0500/stream_0.png" />
+</div>
