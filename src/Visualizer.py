@@ -5,13 +5,18 @@ import numpy.typing as npt
 
 from matplotlib import pyplot as plt
 
+import matplotlib as mpl
 import matplotlib.cm as cm
 import matplotlib.colors as mcolors
 from matplotlib.ticker import FormatStrFormatter
 
+from matplotlib.backends.backend_pdf import PdfPages
+
 
 # todo: save experiment as 1 pdf containing all images
 #   and also the images ?
+
+# todo: dataset histograms ?
 
 # todo fix quiver plotter interpolation resolution
 
@@ -156,6 +161,11 @@ class Visualizer:
     dataset_path: str
     dataset_name: str
 
+    # global pdf
+
+    experiment_pdf_path: str
+    experiment_pdf: mpl.backends.backend_pdf.PdfPages
+
     # VFKM objects
 
     curves: npt.NDArray[VizCurve]
@@ -189,6 +199,8 @@ class Visualizer:
         self.dataset_name: str = dataset_path.split('/')[-1][:-4]
 
         self.experiment_directory = output_directory + self.dataset_name + f'/{experiment_name}/'
+
+        self.experiment_pdf_path = self.experiment_directory + experiment_name + '.pdf'
 
         with open(self.experiment_directory + 'arguments.txt', 'r') as file:
 
@@ -445,7 +457,7 @@ class Visualizer:
             colorbar.set_ticks([colors_min, np.mean(color_quiver), colors_max])
             colorbar.ax.yaxis.set_major_formatter(FormatStrFormatter('%.3f'))
 
-            plt.savefig(self.experiment_directory + f'vector_field_{i}.pdf')
+            self.experiment_pdf.savefig(fig)
             plt.close(fig)
 
             # =======================
@@ -467,7 +479,7 @@ class Visualizer:
             colorbar.set_ticks([colors_min, np.mean(color_stream), colors_max])
             colorbar.ax.yaxis.set_major_formatter(FormatStrFormatter('%.3f'))
 
-            plt.savefig(self.experiment_directory + f'stream_{i}.pdf')
+            self.experiment_pdf.savefig(fig)
             plt.close(fig)
 
     def save_dataset(self):
@@ -488,7 +500,7 @@ class Visualizer:
                 ax.plot(curve[0], curve[1])
         """
 
-        plt.savefig(self.output_directory + self.dataset_name + '/dataset.pdf')
+        self.experiment_pdf.savefig(fig)
         plt.close(fig)
 
     def save_clusters(self, vf_resolution: tuple[int, int] = None):
@@ -551,7 +563,7 @@ class Visualizer:
             sm = cm.ScalarMappable(norm=norm, cmap=cmap)
             fig_cluster.colorbar(sm, ax=ax_cluster, label="average speed")
 
-            fig_cluster.savefig(self.experiment_directory + f'curves_{i}.pdf')
+            self.experiment_pdf.savefig(fig_cluster)
 
 
             # VECTOR FIELD
@@ -561,7 +573,7 @@ class Visualizer:
             ax_cluster.quiver(meshgrid[0], meshgrid[1], U, V, color='w', zorder=2)
             ax_cluster.set_title(f'cluster {i + 1} of {self.k}')
 
-            fig_cluster.savefig(self.experiment_directory + f'cluster_{i}.pdf')
+            self.experiment_pdf.savefig(fig_cluster)
             plt.close(fig_cluster)
 
 
@@ -597,7 +609,7 @@ class Visualizer:
                 cbar = fig.colorbar(sm, ax=ax, label="count")
                 cbar.ax.yaxis.set_major_formatter(FormatStrFormatter('%.0f'))
 
-                fig.savefig(filename)
+                self.experiment_pdf.savefig(fig)
                 plt.close(fig)
 
             hist_global(
@@ -627,12 +639,16 @@ class Visualizer:
 
     def save_all(self, vf_resolution: tuple[int, int] = None):
 
-        if not Path(self.output_directory + self.dataset_name + '/dataset.pdf').exists():
-            print('saving dataset')
+        # create experiment global pdf and opens it
+        with PdfPages(self.experiment_pdf_path) as self.experiment_pdf:
+
+            # if not Path(self.output_directory + self.dataset_name + '/dataset.pdf').exists():
+            #     print('saving dataset')
+            #     self.save_dataset()
             self.save_dataset()
 
-        self.save_all_fields(vf_resolution)
-        self.save_clusters(vf_resolution)
+            self.save_clusters(vf_resolution)
+            self.save_all_fields(vf_resolution)
 
 
 if __name__ == '__main__':
