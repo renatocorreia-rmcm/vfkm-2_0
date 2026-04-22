@@ -10,11 +10,10 @@ import matplotlib.colors as mcolors
 from matplotlib.ticker import FormatStrFormatter
 
 
-# todo fix quiver ploter interpolation resolution
+# todo: save experiment as 1 pdf containing all images
+#   and also the images ?
 
-# todo: histogramas e graficos sobre velocidade e comprimento das curvas em cada cluster
-
-# todo: track static trajectories. where did they went ?
+# todo fix quiver plotter interpolation resolution
 
 # todo: colormesh plots (background of something ?)
 
@@ -103,8 +102,7 @@ class VizCurve:
 
     error: float
 
-    def __init__(self, index: int, x_axis: npt.NDArray[float], y_axis: npt.NDArray[float], t_axis: npt.NDArray[float],
-                 geometric_length: float):
+    def __init__(self, index: int, x_axis: npt.NDArray[float], y_axis: npt.NDArray[float], t_axis: npt.NDArray[float], geometric_length: float):
         self.index = index
 
         self.x_axis = x_axis
@@ -112,6 +110,7 @@ class VizCurve:
         self.t_axis = t_axis
 
         self.geometric_length = geometric_length
+        self.speed = geometric_length/t_axis[-1]
 
         # error is assigned in cluster file read
 
@@ -119,7 +118,7 @@ class VizCurve:
 ##########################################################
 
 class VizCluster:
-    # todo: assign lenght and speed bounds
+    # todo: assign length and speed bounds
     #   maybe on statistic calculations, considering it will need to iterate over all cluster curves anyway to get its metrics
 
     vector_field: VizVectorField
@@ -165,7 +164,7 @@ class Visualizer:
 
     dataset_lengths_bounds: (float, float)
     dataset_speeds_bounds: (float, float)
-    dataset_errors_bounds: (float, float)  # todo: assign: just need to bound over clusters bounds
+    dataset_errors_bounds: (float, float)
 
     # VFKM parameters
 
@@ -278,12 +277,11 @@ class Visualizer:
                             if curve[-1] > max_curve_length:
                                 max_curve_length = curve[-1]
 
-                            # updte speed bounds
-                            curve_speed = curve[-1] / curve[2][-1]  # total_lenght/total_time
-                            if curve_speed < min_curve_speed:
-                                min_curve_speed = curve_speed
-                            if curve_speed > max_curve_speed:
-                                max_curve_speed = curve_speed
+                            # updte speed bounds  # total_lenght/total_time
+                            if viz_curve.speed < min_curve_speed:
+                                min_curve_speed = viz_curve.speed
+                            if viz_curve.speed > max_curve_speed:
+                                max_curve_speed = viz_curve.speed
 
                         for ax in curve[:-1]: ax.clear()  # reset coords
                         curve[-1] = 0  # reset length
@@ -297,13 +295,6 @@ class Visualizer:
 
                         elif t == curve[2][-1]:  # REPEATED timestamp
                             continue
-
-                        # want to consider static trajectories from now
-                        # elif (  # do not move
-                        #         x == curve[0][-1] and
-                        #         y == curve[1][-1]
-                        # ):
-                        #     continue
 
                         else:  # regular point
                             curve[-1] += np.hypot(
@@ -342,6 +333,13 @@ class Visualizer:
             return cluster, (min_error, max_error)
 
         def load_all_clusters() -> npt.NDArray[VizCluster]:
+            """
+            load all clusters from txt
+            set dataset error bounds
+            """
+
+            min_error = float('inf')
+            max_error = float('-inf')
 
             clusters: [VizCluster] = []
 
@@ -371,6 +369,13 @@ class Visualizer:
                     )
                 )
 
+                # update dataset bounds
+
+                if error_bounds[0] < min_error: min_error = error_bounds[0]
+                if error_bounds[1] > max_error: max_error = error_bounds[1]
+
+            self.dataset_errors_bounds = min_error, max_error
+
             return np.array(clusters)
 
         self.clusters = load_all_clusters()
@@ -389,7 +394,7 @@ class Visualizer:
         ax.set_ylim(self.bounding_box['y_min'], self.bounding_box['y_max'])
 
         if title:
-            plt.title(title)
+            ax.set_title(title)
 
         ax.set_facecolor('black')
 
@@ -440,7 +445,7 @@ class Visualizer:
             colorbar.set_ticks([colors_min, np.mean(color_quiver), colors_max])
             colorbar.ax.yaxis.set_major_formatter(FormatStrFormatter('%.3f'))
 
-            plt.savefig(self.experiment_directory + f'vector_field_{i}.png', dpi=150)
+            plt.savefig(self.experiment_directory + f'vector_field_{i}.pdf')
             plt.close(fig)
 
             # =======================
@@ -462,7 +467,7 @@ class Visualizer:
             colorbar.set_ticks([colors_min, np.mean(color_stream), colors_max])
             colorbar.ax.yaxis.set_major_formatter(FormatStrFormatter('%.3f'))
 
-            plt.savefig(self.experiment_directory + f'stream_{i}.png', dpi=200)
+            plt.savefig(self.experiment_directory + f'stream_{i}.pdf')
             plt.close(fig)
 
     def save_dataset(self):
@@ -483,95 +488,157 @@ class Visualizer:
                 ax.plot(curve[0], curve[1])
         """
 
-        plt.savefig(self.output_directory + self.dataset_name + '/dataset.png', dpi=300)
+        plt.savefig(self.output_directory + self.dataset_name + '/dataset.pdf')
         plt.close(fig)
 
-    def save_clusters_curves(self, vf_resolution: tuple[int, int] = None):
+    def save_clusters(self, vf_resolution: tuple[int, int] = None):
 
         if vf_resolution is None:
-            # no interpolation, raw vertices vectors
             vf_resolution = self.grid_resolution
 
-        meshgrid: tuple = ()
-        if vf_resolution:
-            X = np.linspace(self.bounding_box['x_min'], self.bounding_box['x_max'], vf_resolution[0])
-            Y = np.linspace(self.bounding_box['y_min'], self.bounding_box['y_max'], vf_resolution[1])
-            meshgrid = np.meshgrid(X, Y)
+        X = np.linspace(self.bounding_box['x_min'], self.bounding_box['x_max'], vf_resolution[0])
+        Y = np.linspace(self.bounding_box['y_min'], self.bounding_box['y_max'], vf_resolution[1])
+        meshgrid = np.meshgrid(X, Y)
+
+
+        all_lengths = []
+        all_speeds = []
+        all_errors = []
+
+        cluster_data = []
+
+        for cluster in self.clusters:
+            lengths = [c.geometric_length for c in cluster.curves]
+            speeds = [c.speed for c in cluster.curves]
+            errors = [c.error for c in cluster.curves]
+
+            all_lengths.extend(lengths)
+            all_speeds.extend(speeds)
+            all_errors.extend(errors)
+
+            cluster_data.append((lengths, speeds, errors))
+
+
+        BINS = 30
+
+        max_lengths = np.histogram(all_lengths, bins=BINS, range=self.dataset_lengths_bounds)[0].max()
+        max_speeds = np.histogram(all_speeds, bins=BINS, range=self.dataset_speeds_bounds)[0].max()
+        max_errors = np.histogram(all_errors, bins=BINS, range=self.dataset_errors_bounds)[0].max()
+
+
 
         for i, cluster in enumerate(self.clusters):
 
-            fig, ax = self.get_plot(f'curves {i + 1} of {self.k}')
+            lengths, speeds, errors = cluster_data[i]
 
-            # error color
-            # error_bounding = self.clusters_errors_bounds[i]
-            #
-            # norm = mcolors.Normalize(vmin=error_bounding[0], vmax=error_bounding[1])
-            # cmap = cm.viridis
-            #
-            # # colorbar
-            # sm = cm.ScalarMappable(norm=norm, cmap=cmap)
-            # colorbar = plt.colorbar(sm, ax=ax, label="Curve error")
-            #
-            # for c in cluster:
-            #     curve = c[0]
-            #     curve_error: float = c[1]
-            #
-            #     ax.plot(curve[0], curve[1], color=cmap(norm(curve_error)))
+            fig_cluster, ax_cluster = self.get_plot(f'curves {i + 1} of {self.k}')
 
-            # length color
-            # norm = mcolors.Normalize(vmin=self.lengths_bounds[0], vmax=self.lengths_bounds[1])
-            # cmap = cm.viridis
-            # for c in cluster:
-            #     curve = c[0]
-            #     curve_length = curve[-1]
-            #
-            #     ax.plot(curve[0], curve[1], color=cmap(norm(curve_length)))
-            # # colorbar
-            # sm = cm.ScalarMappable(norm=norm, cmap=cmap)
-            # colorbar = plt.colorbar(sm, ax=ax, label="Curve length")
-
-            # speed color
-
-            norm = mcolors.Normalize(vmin=self.dataset_speeds_bounds[0], vmax=self.dataset_speeds_bounds[1])
+            norm = mcolors.Normalize(
+                vmin=self.dataset_speeds_bounds[0],
+                vmax=self.dataset_speeds_bounds[1]
+            )
             cmap = cm.viridis
 
+            # curvas
             for curve in cluster.curves:
-                # todo: take statics HERE
-                curve_speed = curve.geometric_length/curve.t_axis[-1]
-
-                ax.plot(curve.x_axis, curve.y_axis, color=cmap(norm(curve_speed)))
+                ax_cluster.plot(
+                    curve.x_axis,
+                    curve.y_axis,
+                    color=cmap(norm(curve.speed))
+                )
 
             # colorbar
             sm = cm.ScalarMappable(norm=norm, cmap=cmap)
-            plt.colorbar(sm, ax=ax, label="average speed")
+            fig_cluster.colorbar(sm, ax=ax_cluster, label="average speed")
 
-            plt.savefig(self.experiment_directory + f'curves_{i}.png', dpi=300)
+            fig_cluster.savefig(self.experiment_directory + f'curves_{i}.pdf')
 
-            # OVERLAY VECTOR FIELD
+
+            # VECTOR FIELD
 
             U, V = cluster.vector_field.resample(vf_resolution)
 
-            ax.quiver(meshgrid[0], meshgrid[1], U, V, color='w', zorder=2)
-            plt.title(f'cluster {i + 1} of {self.k}')
+            ax_cluster.quiver(meshgrid[0], meshgrid[1], U, V, color='w', zorder=2)
+            ax_cluster.set_title(f'cluster {i + 1} of {self.k}')
 
-            plt.savefig(self.experiment_directory + f'cluster_{i}.png', dpi=300)
+            fig_cluster.savefig(self.experiment_directory + f'cluster_{i}.pdf')
+            plt.close(fig_cluster)
 
-            plt.close(fig)
+
+            # HISTOGRAMS NORMALIZED Y
+
+            def hist_global(x, bounds, title, filename, y_max):
+                fig, ax = plt.subplots(constrained_layout=True)
+                ax.set_title(title)
+                ax.set_facecolor('black')
+
+                counts, bins = np.histogram(x, bins=BINS, range=bounds)
+                widths = np.diff(bins)
+
+                norm = mcolors.Normalize(vmin=0, vmax=y_max)
+                cmap = cm.viridis
+
+                colors = cmap(norm(counts))
+
+                ax.bar(
+                    bins[:-1],
+                    counts,
+                    width=widths,
+                    align='edge',
+                    color=colors,
+                    edgecolor='none'
+                )
+
+                ax.set_ylim(0, y_max)
+
+                sm = cm.ScalarMappable(norm=norm, cmap=cmap)
+                sm.set_array([])
+
+                cbar = fig.colorbar(sm, ax=ax, label="count")
+                cbar.ax.yaxis.set_major_formatter(FormatStrFormatter('%.0f'))
+
+                fig.savefig(filename)
+                plt.close(fig)
+
+            hist_global(
+                x=lengths,
+                bounds=self.dataset_lengths_bounds,
+                title=f'lengths {i + 1} of {self.k}',
+                filename=self.experiment_directory + f'cluster_{i}_lengths.pdf',
+                y_max=max_lengths
+            )
+
+            hist_global(
+                x=speeds,
+                bounds=self.dataset_speeds_bounds,
+                title=f'speeds {i + 1} of {self.k}',
+                filename=self.experiment_directory + f'cluster_{i}_speeds.pdf',
+                y_max=max_speeds
+            )
+
+            hist_global(
+                x=errors,
+                bounds=self.dataset_errors_bounds,
+                title=f'errors {i + 1} of {self.k}',
+                filename=self.experiment_directory + f'cluster_{i}_errors.pdf',
+                y_max=max_errors
+            )
+
 
     def save_all(self, vf_resolution: tuple[int, int] = None):
 
-        if not Path(self.output_directory + self.dataset_name + '/dataset.png').exists():
+        if not Path(self.output_directory + self.dataset_name + '/dataset.pdf').exists():
             print('saving dataset')
             self.save_dataset()
 
         self.save_all_fields(vf_resolution)
-        self.save_clusters_curves(vf_resolution)
+        self.save_clusters(vf_resolution)
 
 
 if __name__ == '__main__':
     v = Visualizer(
         output_directory='../output/',
         dataset_path='../data/sperm_xy_rotated_centered.txt',
-        experiment_name='Experiment_3x3_3_0.0150'
+        experiment_name='Experiment_4x4_6_0.0200'
     )
     v.save_all((10, 7))
