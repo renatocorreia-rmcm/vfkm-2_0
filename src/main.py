@@ -285,7 +285,9 @@ rodar no VScode exige reescrever as importações em cada arquivo
 """
 
 
-# EXPERIMENTS IDEAS
+
+
+# todo: convert txt vfkm output to dataframe
 
 # todo: test:
 #       trajectories_CENTERED: k=12: [slow, fast] x [forward, backward] x [horizontal, vertical, circular]
