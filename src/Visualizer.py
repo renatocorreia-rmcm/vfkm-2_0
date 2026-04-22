@@ -1,91 +1,210 @@
-import copy
-from math import inf
 from pathlib import Path
 
-import matplotlib
-import matplotlib.pyplot as plt
 import numpy as np
 import numpy.typing as npt
+
+from matplotlib import pyplot as plt
 
 import matplotlib.cm as cm
 import matplotlib.colors as mcolors
 from matplotlib.ticker import FormatStrFormatter
 
-# basic types
-
-vector_field_type = tuple[list[float], list[float]]  # 2uple of axis
-curve_type = tuple[list[float], list[float], list[float], float]  # 3ple of x, y, t lists and geometric length value
-
-
-# todo: OOP visualizable objects - no more nested arrays
-#   attributes can be derived from computable objects or recalculated
-# classes can have static attributes for bounds
 
 # todo fix quiver ploter interpolation resolution
 
 # todo: histogramas e graficos sobre velocidade e comprimento das curvas em cada cluster
-#   colorir curva por velocidade
+
 # todo: track static trajectories. where did they went ?
-
-
-# todo: merge save_vector_fields() and save_streamplots() ?
 
 # todo: colormesh plots (background of something ?)
 
 
+##########################################################
+
+
+class VizVectorField:
+    x_axis: npt.NDArray[float]
+    y_axis: npt.NDArray[float]
+
+    def __init__(self, x_axis: npt.NDArray[float], y_axis: npt.NDArray[float]):
+        self.x_axis = x_axis
+        self.y_axis = y_axis
+
+    def resample(self, resolution: (int, int)) -> (npt.NDArray[float], npt.NDArray[float]):
+        """
+        resample vector field axis to given resolution using linear interpolation
+        """
+
+        U_flat, V_flat = self.x_axis, self.y_axis
+
+        new_w, new_h = resolution
+        old_w = old_h = int(len(U_flat) ** 0.5)
+
+        U = np.array(U_flat).reshape(old_h, old_w)
+        V = np.array(V_flat).reshape(old_h, old_w)
+
+        # new grid
+        X_new = np.linspace(0, 1, new_w)
+        Y_new = np.linspace(0, 1, new_h)
+        X_new, Y_new = np.meshgrid(X_new, Y_new)
+
+        # map to old index space
+        X = X_new * (old_w - 1)
+        Y = Y_new * (old_h - 1)
+
+        def triangle_interp(Z, X, Y):
+            x0 = np.floor(X).astype(int)
+            y0 = np.floor(Y).astype(int)
+
+            x1 = np.clip(x0 + 1, 0, Z.shape[1] - 1)
+            y1 = np.clip(y0 + 1, 0, Z.shape[0] - 1)
+
+            # local coordinates inside cell
+            dx = X - x0
+            dy = Y - y0
+
+            Z_new = np.zeros_like(X)
+
+            # mask: which triangle?
+            lower = (dx + dy <= 1)  # lower-left triangle
+            upper = ~lower  # upper-right triangle
+
+            # --- lower triangle (x0,y0), (x1,y0), (x0,y1)
+            Z_new[lower] = (
+                    (1 - dx[lower] - dy[lower]) * Z[y0[lower], x0[lower]] +
+                    dx[lower] * Z[y0[lower], x1[lower]] +
+                    dy[lower] * Z[y1[lower], x0[lower]]
+            )
+
+            # --- upper triangle (x1,y1), (x1,y0), (x0,y1)
+            Z_new[upper] = (
+                    (dx[upper] + dy[upper] - 1) * Z[y1[upper], x1[upper]] +
+                    (1 - dy[upper]) * Z[y0[upper], x1[upper]] +
+                    (1 - dx[upper]) * Z[y1[upper], x0[upper]]
+            )
+
+            return Z_new
+
+        U_new = triangle_interp(U, X, Y)
+        V_new = triangle_interp(V, X, Y)
+
+        return U_new.flatten(), V_new.flatten()
+
+
+class VizCurve:
+    index: int
+
+    x_axis: npt.NDArray[float]
+    y_axis: npt.NDArray[float]
+    t_axis: npt.NDArray[float]
+
+    geometric_length: float
+    speed: float
+
+    error: float
+
+    def __init__(self, index: int, x_axis: npt.NDArray[float], y_axis: npt.NDArray[float], t_axis: npt.NDArray[float],
+                 geometric_length: float):
+        self.index = index
+
+        self.x_axis = x_axis
+        self.y_axis = y_axis
+        self.t_axis = t_axis
+
+        self.geometric_length = geometric_length
+
+        # error is assigned in cluster file read
+
+
+##########################################################
+
+class VizCluster:
+    # todo: assign lenght and speed bounds
+    #   maybe on statistic calculations, considering it will need to iterate over all cluster curves anyway to get its metrics
+
+    vector_field: VizVectorField
+    curves: npt.NDArray[VizCurve]
+
+    error_bounds: (float, float)
+
+    # lengths_bounds: (float, float)
+    # speeds_bounds: (float, float)
+
+    def __init__(
+            self,
+            vector_field: VizVectorField,
+            curves: npt.NDArray[VizCurve],
+            error_bounds: (float, float),
+            # lengths_bounds: (float, float),
+            # speeds_bounds: (float, float)
+    ):
+        self.vector_field = vector_field
+        self.curves = curves
+        self.error_bounds = error_bounds
+        # self.lengths_bounds = lengths_bounds
+        # self.speeds_bounds = speeds_bounds
+
+
+##########################################################
+
+
 class Visualizer:
+    # txt parameters
+
     output_directory: str
-    current_file_loaded: str
+    dataset_path: str
+    experiment_name: str
     dataset_path: str
     dataset_name: str
-    experiment_name: str
 
-    grid_resolution: tuple[int, int]
+    # VFKM objects
+
+    curves: npt.NDArray[VizCurve]
+
+    clusters: npt.NDArray[VizCluster]
+
+    dataset_lengths_bounds: (float, float)
+    dataset_speeds_bounds: (float, float)
+    dataset_errors_bounds: (float, float)  # todo: assign: just need to bound over clusters bounds
+
+    # VFKM parameters
+
+    grid_resolution: (int, int)
     k: int
     smoothness_weight: float
 
-    curves: npt.NDArray[curve_type]  # array of all curves in dataset
+    bounding_box: {str, float}
 
-    vector_fields: list[vector_field_type]
+    # INIT (LOADERS)
 
-    dataset_lengths_bounds: tuple[float, float]
-    dataset_speeds_bounds: tuple[float, float]
-
-    clusters_indices: list[list[tuple[int, float]]]  # used only to load self.cluster_curves
-    clusters_curves: list[list[tuple[curve_type, float]]]
-    clusters_errors_bounds: list[tuple[float, float]]  # min and max error for each cluster
-
-    clusters_lengths_bounds: tuple[float, float]
-    clusters_speeds_bounds: tuple[float, float]
-
-    bounding_box: dict[str, float]
-
-    # CONSTRUCTOR
-
-    def __init__(self, output_directory: str, current_file_loaded: str, experiment_name: str):
+    def __init__(self, output_directory: str, dataset_path: str, experiment_name: str):
+        """
+        load all data from txt files in experiment directory
+        """
+        # VISUALIZER
 
         self.output_directory = output_directory
-        self.current_file_loaded = current_file_loaded
         self.experiment_name = experiment_name
 
-        self.dataset_path = current_file_loaded
+        self.dataset_path = dataset_path
+        self.dataset_name: str = dataset_path.split('/')[-1][:-4]
 
-        self.dataset_name: str = current_file_loaded.split('/')[-1][:-4]
-
-        self.experiment_directory = output_directory + current_file_loaded.split('/')[-1][:-4] + f'/{experiment_name}/'
-        #print(f"Saving images at {self.experiment_directory}")
+        self.experiment_directory = output_directory + self.dataset_name + f'/{experiment_name}/'
 
         with open(self.experiment_directory + 'arguments.txt', 'r') as file:
+
             line = file.readline().split(': ')[-1].split()
             self.grid_resolution = (int(line[0]), int(line[1]))
 
-            self.k = int(file.readline().split(': ')[-1])
+            line = file.readline().split(': ')[-1]
+            self.k = int(line)
 
-            self.smoothness_weight = float(file.readline().split(': ')[-1])
+            line = file.readline().split(': ')[-1]
+            self.smoothness_weight = float(line)
 
-        # load cluster vector fields
+        # VECTOR FIELDS
 
-        def load_vector_field(filename: str) -> vector_field_type:
+        def load_vector_field(filename: str) -> VizVectorField:
             vector_field = ([], [])
 
             with open(filename, 'r') as f:
@@ -95,64 +214,17 @@ class Visualizer:
                     vector_field[0].append(float(x))
                     vector_field[1].append(float(y))
 
-            return vector_field
+            return VizVectorField(np.array(vector_field[0]), np.array(vector_field[1]))
 
-        def load_all_vector_fields() -> list[vector_field_type]:
-            vector_fields = []
-            for i in range(self.k):
-                vector_fields.append(load_vector_field(self.experiment_directory + f"txt/vf_r_{i}.txt"))
-            return vector_fields
+        # CURVES
 
-        self.vector_fields = load_all_vector_fields()
-
-        # load clusters indices
-
-        def load_cluster_indices(filename: str) -> tuple[list[tuple[int, float]], tuple[float, float]]:
-            cluster = []
-
-            min_error = float('inf')
-            max_error = float('-inf')
-
-            with open(filename, 'r') as f:
-                for line in f:
-                    line = line.split()
-                    error = float(line[1])
-                    if error < min_error: min_error = error
-                    if error > max_error: max_error = error
-
-                    cluster.append((int(line[0]), error))
-
-            return cluster, (min_error, max_error)
-
-        def load_all_clusters_indices() -> tuple[list[list[tuple[int, float]]], list[tuple[float, float]]]:
+        def load_all_curves() -> (npt.NDArray[VizCurve], {str, float}):
             """
-            return list of
-            curves indices and errors
-
-            and errors bounds
-
-            for each cluster
+            return array of curves and bounding box
             """
-            clusters = []
-            error_bounds = []
 
-            for i in range(self.k):
-                cluster, error_bound = load_cluster_indices(self.experiment_directory + f"txt/curves_r_{i}.txt")
-
-                clusters.append(cluster)
-                error_bounds.append(error_bound)
-
-            return clusters, error_bounds
-
-        self.clusters_indices, self.clusters_errors_bounds = load_all_clusters_indices()
-
-        # load all curves
-
-        def load_curves(filename: str) -> tuple[npt.NDArray[tuple[curve_type, float]], dict[str, float]]:
-            """
-            return array of (curve, length) and bounding box
-            """
-            bounding_box: dict[str, float] = {
+            inf = float('inf')
+            bounding_box: {str, float} = {
                 "x_min": +inf, "x_max": -inf,
                 "y_min": +inf, "y_max": -inf,
                 "t_min": +inf, "t_max": -inf,
@@ -163,48 +235,58 @@ class Visualizer:
             min_curve_speed = float('inf')
             max_curve_speed = float('-inf')
 
-            with (open(filename, "r") as file):
+            with (open(self.dataset_path, "r") as file):
                 # read bounding box
-                header: list[str] = file.readline().split()
+                header: [str] = file.readline().split()
                 if len(header) < 6:
                     raise ValueError("Invalid bounding box line in input file")
 
                 bounding_box["x_min"], bounding_box["x_max"], bounding_box["y_min"], bounding_box["y_max"], \
-                bounding_box["t_min"], bounding_box["t_max"] = map(float, header)
+                    bounding_box["t_min"], bounding_box["t_max"] = map(float, header)
 
-                curve: curve_type = ([], [], [], 0)  # curve = x_axis, y_axis, t_axis
-                curves: list[tuple[curve_type, float]] = []
+                curve = [[], [], [], 0]  # x_axis, y_axis, t_axis, geometric_length
+                viz_curves: [VizCurve] = []
 
-                for line in file:
+                for i, line in enumerate(file):
 
                     tokens = [float(i) for i in line.strip().split()]
                     if len(tokens) < 3:  # missing data (coordinate or timestamp)
                         continue
-                    x, y, t = map(float, tokens)
+                    x, y, t = tokens
 
                     if (  # END OF CURVE
                             # (implicit: Out of bounding box)
                             x < bounding_box["x_min"] or x > bounding_box["x_max"] or
                             y < bounding_box["y_min"] or y > bounding_box["y_max"] or
                             t < bounding_box["t_min"] or t > bounding_box["t_max"]
-                            or # (explicit: flag)
+                            or  # (explicit: flag)
                             x == y == t == 0
                     ):
-                        if len(curve[0]) >= 2:
-                            curves.append(copy.deepcopy(curve))
+                        if len(curve[0]) >= 2:  # valid curve - store
+                            viz_curve: VizCurve = VizCurve(
+                                x_axis=np.array(curve[0]),
+                                y_axis=np.array(curve[1]),
+                                t_axis=np.array(curve[2]),
+                                index=i,
+                                geometric_length=curve[-1]
+                            )
+                            viz_curves.append(viz_curve)
 
-                        for ax in curve: ax.clear()
+                            # update length bounds
+                            if curve[-1] < min_curve_length:
+                                min_curve_length = curve[-1]
+                            if curve[-1] > max_curve_length:
+                                max_curve_length = curve[-1]
 
-                        curve_speed = curve_lenght / curve[]
+                            # updte speed bounds
+                            curve_speed = curve[-1] / curve[2][-1]  # total_lenght/total_time
+                            if curve_speed < min_curve_speed:
+                                min_curve_speed = curve_speed
+                            if curve_speed > max_curve_speed:
+                                max_curve_speed = curve_speed
 
-                        if curve_lenght < min_curve_length:
-                            min_curve_length = curve_lenght
-                        if curve_lenght > max_curve_length:
-                            max_curve_length = curve_lenght
-
-
-
-                        curve_lenght = 0
+                        for ax in curve[:-1]: ax.clear()  # reset coords
+                        curve[-1] = 0  # reset length
 
                     else:  # VALID POINT
 
@@ -224,99 +306,81 @@ class Visualizer:
                         #     continue
 
                         else:  # regular point
-                            curve_lenght += np.hypot(
+                            curve[-1] += np.hypot(
                                 curve[0][-1] - x, curve[1][-1] - y
                             )
                             curve[0].append(x)
                             curve[1].append(y)
                             curve[2].append(t)
 
-            return np.array(curves, dtype='object'), bounding_box
+            self.dataset_lengths_bounds = min_curve_length, max_curve_length
+            self.dataset_speeds_bounds = min_curve_speed, max_curve_speed
+            return np.array(viz_curves, dtype='object'), bounding_box
 
-        self.curves, self.bounding_box = load_curves(self.dataset_path)
+        self.curves, self.bounding_box = load_all_curves()
 
-        # load all clusters curves
+        # CLUSTERS
 
-        def map_clusters_curves() -> list[list[tuple[curve_type, float]]]:
+        def load_cluster_indices(filename: str) -> ([(int, float)], (float, float)):
+            """
+            return cluster indices, errors and errors bounds
+            """
+            cluster = []
 
-            clusters_curves: list[list[tuple[curve_type, float]]] = [
-                [(self.curves[curve[0]], curve[1]) for curve in cluster] for cluster in self.clusters_indices
-            ]
+            min_error = float('inf')
+            max_error = float('-inf')
 
-            return clusters_curves
+            with open(filename, 'r') as f:
+                for line in f:
+                    line = line.split()
+                    error = float(line[1])
+                    if error < min_error: min_error = error
+                    if error > max_error: max_error = error
 
-        self.clusters_curves = map_clusters_curves()
+                    cluster.append((int(line[0]), error))
 
-        # set pyplot resolution
+            return cluster, (min_error, max_error)
 
-        plt.rcParams['savefig.dpi'] = 300
+        def load_all_clusters() -> npt.NDArray[VizCluster]:
+
+            clusters: [VizCluster] = []
+
+            for cluster_index in range(self.k):
+
+                # vector_field
+                vector_field: VizVectorField = load_vector_field(
+                    self.experiment_directory + f"txt/vf_r_{cluster_index}.txt")
+
+                # curves
+                cluster_curves: [VizCurve] = []
+
+                indices_errors, error_bounds = load_cluster_indices(
+                    self.experiment_directory + f"txt/curves_r_{cluster_index}.txt")
+
+                for index, error in indices_errors:
+                    self.curves[index].error = error
+                    cluster_curves.append(self.curves[index])
+
+                # create cluster
+
+                clusters.append(
+                    VizCluster(
+                        vector_field=vector_field,
+                        curves=np.array(cluster_curves, dtype='object'),
+                        error_bounds=error_bounds
+                    )
+                )
+
+            return np.array(clusters)
+
+        self.clusters = load_all_clusters()
 
     # GETTERS
 
-    def resample_vector_fields(self, new_vector_field_resolution: tuple[int, int]):
-        """Resample using linear interpolation on triangular grid"""
-
-        resampled_vector_fields: list[vector_field_type] = []
-
-        for vector_field in self.vector_fields:
-            U_flat, V_flat = vector_field
-
-            new_w, new_h = new_vector_field_resolution
-            old_w = old_h = int(len(U_flat) ** 0.5)
-
-            U = np.array(U_flat).reshape(old_h, old_w)
-            V = np.array(V_flat).reshape(old_h, old_w)
-
-            # new grid
-            X_new = np.linspace(0, 1, new_w)
-            Y_new = np.linspace(0, 1, new_h)
-            X_new, Y_new = np.meshgrid(X_new, Y_new)
-
-            # map to old index space
-            X = X_new * (old_w - 1)
-            Y = Y_new * (old_h - 1)
-
-            def triangle_interp(Z, X, Y):
-                x0 = np.floor(X).astype(int)
-                y0 = np.floor(Y).astype(int)
-
-                x1 = np.clip(x0 + 1, 0, Z.shape[1] - 1)
-                y1 = np.clip(y0 + 1, 0, Z.shape[0] - 1)
-
-                # local coordinates inside cell
-                dx = X - x0
-                dy = Y - y0
-
-                Z_new = np.zeros_like(X)
-
-                # mask: which triangle?
-                lower = (dx + dy <= 1)  # lower-left triangle
-                upper = ~lower  # upper-right triangle
-
-                # --- lower triangle (x0,y0), (x1,y0), (x0,y1)
-                Z_new[lower] = (
-                        (1 - dx[lower] - dy[lower]) * Z[y0[lower], x0[lower]] +
-                        dx[lower] * Z[y0[lower], x1[lower]] +
-                        dy[lower] * Z[y1[lower], x0[lower]]
-                )
-
-                # --- upper triangle (x1,y1), (x1,y0), (x0,y1)
-                Z_new[upper] = (
-                        (dx[upper] + dy[upper] - 1) * Z[y1[upper], x1[upper]] +
-                        (1 - dy[upper]) * Z[y0[upper], x1[upper]] +
-                        (1 - dx[upper]) * Z[y1[upper], x0[upper]]
-                )
-
-                return Z_new
-
-            U_new = triangle_interp(U, X, Y)
-            V_new = triangle_interp(V, X, Y)
-
-            resampled_vector_fields.append((U_new.flatten(), V_new.flatten()))
-
-        return resampled_vector_fields
-
     def get_plot(self, title: str = None):
+        """
+        get empty plot with bounding box limits and title
+        """
         fig, ax = plt.subplots(constrained_layout=True)
         ax.set_aspect('equal')
         ax.set_xlim(self.bounding_box['x_min'], self.bounding_box['x_max'])
@@ -328,166 +392,184 @@ class Visualizer:
 
     # SAVERS
 
-    def save_vector_fields(self, resolution: tuple[int, int]):
-        X = np.linspace(self.bounding_box['x_min'], self.bounding_box['x_max'], resolution[0])
-        Y = np.linspace( self.bounding_box['y_min'], self.bounding_box['y_max'], resolution[1])
-        X, Y = np.meshgrid(X, Y)
-
-        resampled_vector_fields = self.resample_vector_fields(resolution)
-
-        all_colors = [
-            np.hypot(U, V)
-            for U, V in resampled_vector_fields
-        ]
-        colors_min = min(np.min(c) for c in all_colors)
-        colors_max = max(np.max(c) for c in all_colors)
-
-        # normalização global compartilhada - cor de cada vetor é relativa a todos os campos vetorias, e não so o que ele pertence
-        global_norm = mcolors.Normalize(vmin=colors_min, vmax=colors_max)
-
-        cmap = cm.viridis
-
-        for i, (U, V) in enumerate(resampled_vector_fields):
-            fig, ax = self.get_plot(title=f'vector field {i + 1} of {self.k}')
-            ax.set_facecolor('black')
-
-            # magnitude deste campo
-            color = np.hypot(U, V)
-
-            # quiver usando escala global
-            ax.quiver(X, Y, U, V, color, cmap=cmap, norm=global_norm)
-
-            # colorbar também global
-            sm = cm.ScalarMappable(norm=global_norm, cmap=cmap)
-            sm.set_array([])
-
-            colorbar = plt.colorbar(sm, ax=ax, label="speed")
-            colorbar.set_ticks([colors_min, np.mean(color), colors_max])
-            colorbar.ax.yaxis.set_major_formatter(FormatStrFormatter('%.3f'))
-
-            plt.savefig(self.experiment_directory + f'vector_field_{i}.png', dpi=150)
-            plt.close(fig)
-
-    def save_streams(self, resolution: tuple[int, int]):
+    def save_all_fields(self, resolution: tuple[int, int]):
+        """
+        save all vector fields as quiver and streamplot, with shared global color normalization
+        """
 
         X = np.linspace(self.bounding_box['x_min'], self.bounding_box['x_max'], resolution[0])
         Y = np.linspace(self.bounding_box['y_min'], self.bounding_box['y_max'], resolution[1])
         X, Y = np.meshgrid(X, Y)
 
-        resampled_vector_fields = self.resample_vector_fields(resolution)
+        resampled_vector_fields = [c.vector_field.resample(resolution) for c in self.clusters]
 
         all_colors = [
             np.hypot(U, V)
             for U, V in resampled_vector_fields
         ]
+
         colors_min = min(np.min(c) for c in all_colors)
         colors_max = max(np.max(c) for c in all_colors)
 
         # normalização global compartilhada - cor de cada vetor é relativa a todos os campos vetorias, e não so o que ele pertence
         global_norm = mcolors.Normalize(vmin=colors_min, vmax=colors_max)
+
         cmap = cm.viridis
 
-        for i, resampled_vector_field in enumerate(resampled_vector_fields):
-            fig, ax = self.get_plot(title=f"streamplot {i + 1} of {self.k}")
+        for i, (U_raw, V_raw) in enumerate(resampled_vector_fields):
+
+            # magnitude deste campo
+            color_quiver = np.hypot(U_raw, V_raw)
+
+            # =======================
+            # QUIVER
+            # =======================
+            fig, ax = self.get_plot(title=f'vector field {i + 1} of {self.k}')
             ax.set_facecolor('black')
 
-            U, V = resampled_vector_field
+            ax.quiver(X, Y, U_raw, V_raw, color_quiver, cmap=cmap, norm=global_norm)
 
-            ny, nx = Y.shape
-
-            U = np.array(U).reshape(ny, nx)
-            V = np.array(V).reshape(ny, nx)
-
-            color = np.hypot(U, V)
-
-            ax.streamplot(X, Y, U, V, color=color, cmap='viridis', norm=global_norm)
-
-            cmap = cm.viridis
-
-            # colorbar
             sm = cm.ScalarMappable(norm=global_norm, cmap=cmap)
+            sm.set_array([])
+
             colorbar = plt.colorbar(sm, ax=ax, label="speed")
-            colorbar.set_ticks([colors_min, np.mean(color), colors_max])
+            colorbar.set_ticks([colors_min, np.mean(color_quiver), colors_max])
+            colorbar.ax.yaxis.set_major_formatter(FormatStrFormatter('%.3f'))
+
+            plt.savefig(self.experiment_directory + f'vector_field_{i}.png', dpi=150)
+            plt.close(fig)
+
+            # =======================
+            # STREAM
+            # =======================
+            ny, nx = Y.shape
+            U = np.array(U_raw).reshape(ny, nx)
+            V = np.array(V_raw).reshape(ny, nx)
+
+            color_stream = np.hypot(U, V)
+
+            fig, ax = self.get_plot(title=f'streamplot {i + 1} of {self.k}')
+            ax.set_facecolor('black')
+
+            ax.streamplot(X, Y, U, V, color=color_stream, cmap=cmap, norm=global_norm)
+
+            sm = cm.ScalarMappable(norm=global_norm, cmap=cmap)
+
+            colorbar = plt.colorbar(sm, ax=ax, label="speed")
+            colorbar.set_ticks([colors_min, np.mean(color_stream), colors_max])
             colorbar.ax.yaxis.set_major_formatter(FormatStrFormatter('%.3f'))
 
             plt.savefig(self.experiment_directory + f'stream_{i}.png', dpi=200)
             plt.close(fig)
 
     def save_dataset(self):
+        # todo: map color to length
+        # todo: map color to speed
+        # todo: plot in length decrescent order (avoid full overwriting of short curves by long ones)
 
         fig, ax = self.get_plot(title=f"{self.dataset_name}")
 
         # plot in index order
-        # todo: map color to length (curve[3])
-        # todo: map color to speed (curve[3]/curve[2][-1])
         for curve in self.curves:
-            ax.plot(curve[0], curve[1])
-        """
+            ax.plot(curve.x_axis, curve.y_axis)
 
+        """
         # plot in cluster order
         for cluster in self.clusters_curves:
             for curve in cluster:
                 ax.plot(curve[0], curve[1])
         """
 
-        plt.savefig(self.output_directory + self.dataset_name + '/dataset.png')
+        plt.savefig(self.output_directory + self.dataset_name + '/dataset.png', dpi=300)
         plt.close(fig)
 
     def save_clusters_curves(self, vf_resolution: tuple[int, int] = None):
 
-        resampled_vector_fields: list[vector_field_type] = []
-        meshgrid: tuple = ()
+        if vf_resolution is None:
+            # no interpolation, raw vertices vectors
+            vf_resolution = self.grid_resolution
 
+        meshgrid: tuple = ()
         if vf_resolution:
             X = np.linspace(self.bounding_box['x_min'], self.bounding_box['x_max'], vf_resolution[0])
             Y = np.linspace(self.bounding_box['y_min'], self.bounding_box['y_max'], vf_resolution[1])
             meshgrid = np.meshgrid(X, Y)
 
-            resampled_vector_fields = self.resample_vector_fields(vf_resolution)
-
-        for i, cluster in enumerate(self.clusters_curves):
+        for i, cluster in enumerate(self.clusters):
 
             fig, ax = self.get_plot(f'curves {i + 1} of {self.k}')
             ax.set_facecolor('black')
 
-            error_bounding = self.clusters_errors_bounds[i]
+            # error color
+            # error_bounding = self.clusters_errors_bounds[i]
+            #
+            # norm = mcolors.Normalize(vmin=error_bounding[0], vmax=error_bounding[1])
+            # cmap = cm.viridis
+            #
+            # # colorbar
+            # sm = cm.ScalarMappable(norm=norm, cmap=cmap)
+            # colorbar = plt.colorbar(sm, ax=ax, label="Curve error")
+            #
+            # for c in cluster:
+            #     curve = c[0]
+            #     curve_error: float = c[1]
+            #
+            #     ax.plot(curve[0], curve[1], color=cmap(norm(curve_error)))
 
-            norm = mcolors.Normalize(vmin=error_bounding[0], vmax=error_bounding[1])
+            # length color
+            # norm = mcolors.Normalize(vmin=self.lengths_bounds[0], vmax=self.lengths_bounds[1])
+            # cmap = cm.viridis
+            # for c in cluster:
+            #     curve = c[0]
+            #     curve_length = curve[-1]
+            #
+            #     ax.plot(curve[0], curve[1], color=cmap(norm(curve_length)))
+            # # colorbar
+            # sm = cm.ScalarMappable(norm=norm, cmap=cmap)
+            # colorbar = plt.colorbar(sm, ax=ax, label="Curve length")
+
+            # speed color
+
+            norm = mcolors.Normalize(vmin=self.dataset_speeds_bounds[0], vmax=self.dataset_speeds_bounds[1])
             cmap = cm.viridis
+
+            for curve in cluster.curves:
+                # todo: take statics HERE
+                curve_speed = curve.geometric_length/curve.t_axis[-1]
+
+                ax.plot(curve.x_axis, curve.y_axis, color=cmap(norm(curve_speed)))
 
             # colorbar
             sm = cm.ScalarMappable(norm=norm, cmap=cmap)
-            colorbar = plt.colorbar(sm, ax=ax, label="Curve Error")
+            plt.colorbar(sm, ax=ax, label="average speed")
 
-            for curve in cluster:
-                curve_cords = curve[0]
-                curve_error: float = curve[1]
+            plt.savefig(self.experiment_directory + f'curves_{i}.png', dpi=300)
 
-                ax.plot(curve_cords[0], curve_cords[1], color=cmap(norm(curve_error)))
+            # OVERLAY VECTOR FIELD
 
-            plt.savefig(self.experiment_directory + f'curves_{i}.png')
+            U, V = cluster.vector_field.resample(vf_resolution)
 
-            if vf_resolution:
-                U = resampled_vector_fields[i][0]
-                V = resampled_vector_fields[i][1]
-                color = np.hypot(U, V)
-                ax.quiver(meshgrid[0], meshgrid[1], U, V, color='w', zorder=2)
-                plt.title(f'cluster {i + 1} of {self.k}')
-                plt.savefig(self.experiment_directory + f'cluster_{i}.png')
+            ax.quiver(meshgrid[0], meshgrid[1], U, V, color='w', zorder=2)
+            plt.title(f'cluster {i + 1} of {self.k}')
+
+            plt.savefig(self.experiment_directory + f'cluster_{i}.png', dpi=300)
+
             plt.close(fig)
 
-    # ALL
-
     def save_all(self, vf_resolution: tuple[int, int] = None):
-        self.save_vector_fields(vf_resolution)
+
         if not Path(self.output_directory + self.dataset_name + '/dataset.png').exists():
             print('saving dataset')
             self.save_dataset()
+
+        self.save_all_fields(vf_resolution)
         self.save_clusters_curves(vf_resolution)
-        self.save_streams(vf_resolution)
 
 
 if __name__ == '__main__':
-    v = Visualizer(current_file_loaded='../data/sperm_xy_rotated_centered.txt', output_directory='../output/',
-                   experiment_name='Experiment_3x3_2_0.0700')
+    v = Visualizer(
+        output_directory='../output/',
+        dataset_path='../data/sperm_xy_rotated_centered.txt',
+        experiment_name='Experiment_3x3_3_0.0150'
+    )
     v.save_all((10, 7))
