@@ -574,7 +574,7 @@ def repopulate_all_empty_cluster_by_random(  # todo: implement repopulate_all_em
     for cluster in clusters:
 
         if len(cluster.curves) == 0:  # 'cluster' now is the empty one
-            print("repopulating empty cluster")
+            #print("repopulating empty cluster")
 
             # Reset vector field components to zero before refill
             cluster.vector_field[0].fill(0.0)
