@@ -382,11 +382,16 @@ class Visualizer:
         get empty plot with bounding box limits and title
         """
         fig, ax = plt.subplots(constrained_layout=True)
+
         ax.set_aspect('equal')
+
         ax.set_xlim(self.bounding_box['x_min'], self.bounding_box['x_max'])
         ax.set_ylim(self.bounding_box['y_min'], self.bounding_box['y_max'])
+
         if title:
             plt.title(title)
+
+        ax.set_facecolor('black')
 
         return fig, ax
 
@@ -425,7 +430,6 @@ class Visualizer:
             # QUIVER
             # =======================
             fig, ax = self.get_plot(title=f'vector field {i + 1} of {self.k}')
-            ax.set_facecolor('black')
 
             ax.quiver(X, Y, U_raw, V_raw, color_quiver, cmap=cmap, norm=global_norm)
 
@@ -449,7 +453,6 @@ class Visualizer:
             color_stream = np.hypot(U, V)
 
             fig, ax = self.get_plot(title=f'streamplot {i + 1} of {self.k}')
-            ax.set_facecolor('black')
 
             ax.streamplot(X, Y, U, V, color=color_stream, cmap=cmap, norm=global_norm)
 
@@ -498,7 +501,6 @@ class Visualizer:
         for i, cluster in enumerate(self.clusters):
 
             fig, ax = self.get_plot(f'curves {i + 1} of {self.k}')
-            ax.set_facecolor('black')
 
             # error color
             # error_bounding = self.clusters_errors_bounds[i]
