@@ -285,7 +285,7 @@ rodar no VScode exige reescrever as importações em cada arquivo
 """
 
 
-
+# todo: test new dataset
 
 # todo: convert txt vfkm output to dataframe
 
@@ -352,13 +352,17 @@ def run_experiment(args):
 
 
 if __name__ == "__main__":
-    # todo: run default experiment for readme
-
     # todo: modularize also dataset on experiment. Better to parallelize tiny amount of experiments
 
     # todo: tirar visualizer de main()
     #   chamar main() visualizer() com paramteros em evidencia
     #   melhor de subir testes na nuvem sem imagens
+
+    main(filename='../data/sperm_xy_rotated_centered.txt',
+         grid_resolution=4,
+         number_of_vector_fields=10,
+         smoothness_weight=0.02,
+         output_directory='../output/')
 
     # SEARCHING RESULTS IN PARAMETER SPACE
     # resolution_space = [3, 4, 5, 6, 7, 8, 9, 10]

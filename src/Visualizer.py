@@ -12,11 +12,11 @@ from matplotlib.ticker import FormatStrFormatter
 
 from matplotlib.backends.backend_pdf import PdfPages
 
+# todo: save each fig in its object.
+#   so can modularize saving to call at end only
+#   and modify pdf orders or individual images extensions
 
-# todo: save experiment as 1 pdf containing all images
-#   and also the images ?
-
-# todo: dataset histograms ?
+# todo: medidas de tendência central (média, mediana) e de dispersão (desvio padrão, quartis)
 
 # todo fix quiver plotter interpolation resolution
 
@@ -512,7 +512,6 @@ class Visualizer:
         Y = np.linspace(self.bounding_box['y_min'], self.bounding_box['y_max'], vf_resolution[1])
         meshgrid = np.meshgrid(X, Y)
 
-
         all_lengths = []
         all_speeds = []
         all_errors = []
@@ -530,14 +529,70 @@ class Visualizer:
 
             cluster_data.append((lengths, speeds, errors))
 
-
         BINS = 30
 
         max_lengths = np.histogram(all_lengths, bins=BINS, range=self.dataset_lengths_bounds)[0].max()
         max_speeds = np.histogram(all_speeds, bins=BINS, range=self.dataset_speeds_bounds)[0].max()
         max_errors = np.histogram(all_errors, bins=BINS, range=self.dataset_errors_bounds)[0].max()
 
+        def hist_global(x, bounds, title, filename, y_max):
+            fig, ax = plt.subplots(constrained_layout=True)
+            ax.set_title(title)
+            ax.set_facecolor('black')
 
+            counts, bins = np.histogram(x, bins=BINS, range=bounds)
+            widths = np.diff(bins)
+
+            norm = mcolors.Normalize(vmin=0, vmax=y_max)
+            cmap = cm.viridis
+
+            colors = cmap(norm(counts))
+
+            ax.bar(
+                bins[:-1],
+                counts,
+                width=widths,
+                align='edge',
+                color=colors,
+                edgecolor='none'
+            )
+
+            ax.set_ylim(0, y_max)
+
+            sm = cm.ScalarMappable(norm=norm, cmap=cmap)
+            sm.set_array([])
+
+            cbar = fig.colorbar(sm, ax=ax, label="count")
+            cbar.ax.yaxis.set_major_formatter(FormatStrFormatter('%.0f'))
+
+            self.experiment_pdf.savefig(fig)
+            plt.close(fig)
+
+        # dataset
+
+        hist_global(
+            x=all_lengths,
+            bounds=self.dataset_lengths_bounds,
+            title=f'{self.dataset_name} lengths',
+            filename=self.experiment_directory + f'dataset_lengths.pdf',
+            y_max=max_lengths
+        )
+
+        hist_global(
+            x=all_speeds,
+            bounds=self.dataset_speeds_bounds,
+            title=f'{self.dataset_name} speeds',
+            filename=self.experiment_directory + f'dataset_speeds.pdf',
+            y_max=max_speeds
+        )
+
+        hist_global(
+            x=all_errors,
+            bounds=self.dataset_errors_bounds,
+            title=f'{self.dataset_name} errors',
+            filename=self.experiment_directory + f'dataset_errors.pdf',
+            y_max=max_errors
+        )
 
         for i, cluster in enumerate(self.clusters):
 
@@ -579,39 +634,6 @@ class Visualizer:
 
             # HISTOGRAMS NORMALIZED Y
 
-            def hist_global(x, bounds, title, filename, y_max):
-                fig, ax = plt.subplots(constrained_layout=True)
-                ax.set_title(title)
-                ax.set_facecolor('black')
-
-                counts, bins = np.histogram(x, bins=BINS, range=bounds)
-                widths = np.diff(bins)
-
-                norm = mcolors.Normalize(vmin=0, vmax=y_max)
-                cmap = cm.viridis
-
-                colors = cmap(norm(counts))
-
-                ax.bar(
-                    bins[:-1],
-                    counts,
-                    width=widths,
-                    align='edge',
-                    color=colors,
-                    edgecolor='none'
-                )
-
-                ax.set_ylim(0, y_max)
-
-                sm = cm.ScalarMappable(norm=norm, cmap=cmap)
-                sm.set_array([])
-
-                cbar = fig.colorbar(sm, ax=ax, label="count")
-                cbar.ax.yaxis.set_major_formatter(FormatStrFormatter('%.0f'))
-
-                self.experiment_pdf.savefig(fig)
-                plt.close(fig)
-
             hist_global(
                 x=lengths,
                 bounds=self.dataset_lengths_bounds,
@@ -635,7 +657,6 @@ class Visualizer:
                 filename=self.experiment_directory + f'cluster_{i}_errors.pdf',
                 y_max=max_errors
             )
-
 
     def save_all(self, vf_resolution: tuple[int, int] = None):
 
