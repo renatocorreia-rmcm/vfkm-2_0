@@ -22,18 +22,16 @@ and demonstrate how vector-field k-means can be used to mine patterns from traje
 ## DEMO
 
 ### DataSet
-![Synthetic dataset](output/synthetic/dataset.png)
+<img width="99%" src="https://github.com/user-attachments/assets/2239662b-c6ff-4c1e-b9d6-d7e71d655c04" />
+
 
 ### Clusters found
 
-<div style="display: flex; gap: 10px;">
-  <img width="48%" alt="cluster_0" src="output/synthetic/Experiment_3x3_2_0.0500/cluster_1.png" />
-  <img width="48%" alt="cluster_0" src="output/synthetic/Experiment_3x3_2_0.0500/cluster_0.png" />
-</div>
 
-### Streamplots
 
 <div style="display: flex; gap: 10px;">
-  <img width="48%" alt="cluster_0" src="output/synthetic/Experiment_3x3_2_0.0500/stream_1.png" />
-  <img width="48%" alt="cluster_0" src="output/synthetic/Experiment_3x3_2_0.0500/stream_0.png" />
+  
+  <img width="48%" src="https://github.com/user-attachments/assets/0461766f-3dbd-45fa-acb1-a45ef66120db" />
+  <img width="48%" src="https://github.com/user-attachments/assets/137034d1-b588-4ae1-bb3a-a28915190532" />
+
 </div>
